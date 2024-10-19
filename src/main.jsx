@@ -1,8 +1,10 @@
 import React, { useLayoutEffect } from "react";
 import { BrowserRouter, useLocation } from "react-router-dom";
 import { createRoot } from "react-dom/client";
-import App from "./App.jsx";
 import "./index.css";
+import ErrorBoundary from "./utils/ErrorBoundary";
+import { UserDataProvider } from "./context/userDataContext";
+import { Routes } from "./routes";
 
 const container = document.getElementById("root")
 const root = createRoot(container)
@@ -19,7 +21,11 @@ root.render(
 	<BrowserRouter>
 		<Wrapper>
 			<React.StrictMode>
-				<App />
+				<ErrorBoundary>
+					<UserDataProvider>
+						<Routes />
+					</UserDataProvider>
+				</ErrorBoundary>
 			</React.StrictMode>
 		</Wrapper>
 	</BrowserRouter>

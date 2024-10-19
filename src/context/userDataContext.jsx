@@ -2,39 +2,53 @@ import { createContext, useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { db, auth } from "@services/firebase/config";
-//import { doctor_male, doctor_female, doctor_undefined } from "@assets/users"
 
 export const UserDataContext = createContext();
 
 export function UserDataProvider({ children }) {
-	const [user, setUser] = useState([]);
+	const [user, setUser] = useState(null); // Inicializa como null
+	const [userAuth, setUserAuth] = useState({});
 	const [userData, setUserData] = useState({});
 
 	useEffect(() => {
-		if (user != null) {
-			onAuthStateChanged(auth, (userFirebase) => {
-				if (userFirebase) {
-					setUser(userFirebase);
-				} else {
-					setUser(null);
-				}
-			});
-			const userID = user.uid;
-			const docRef = doc(db, `users/${userID}`);
+		const unsubscribe = onAuthStateChanged(auth, async (userFirebase) => {
+			if (userFirebase) {
+				setUser(userFirebase);
 
-			const post = async () => {
-				const dataDetail = await getDoc(docRef);
-				setUserData({ ...dataDetail.data() });
-			};
+				const userID = userFirebase.uid;
+				const docRefAuth = doc(db, `userAuth/${userID}`);
 
-			if (Object.entries(userData).length === 0) {
-				post();
+				// Cargar userAuth
+				const authDetail = await getDoc(docRefAuth);
+				setUserAuth(authDetail.data() || null);
+			} else {
+				setUser(null);
+				setUserAuth(null);
+				setUserData(null);
 			}
-		}
-	}, [user]);
+		});
+
+		return () => unsubscribe();
+	}, []);
+
+	useEffect(() => {
+		const loadUserData = async () => {
+			try {
+				if (userAuth.username) {
+					const docRefData = doc(db, `userData/${userAuth.username}`);
+					const dataDetail = await getDoc(docRefData);
+					setUserData(dataDetail.data() || null);
+				}
+			} catch (error) {
+				console.error('Error loading user data:', error);
+			}
+		};
+
+		loadUserData();
+	}, [userAuth]);
 
 	return (
-		<UserDataContext.Provider value={{ user, userData }}>
+		<UserDataContext.Provider value={{ user, userAuth, userData }}>
 			{children}
 		</UserDataContext.Provider>
 	);

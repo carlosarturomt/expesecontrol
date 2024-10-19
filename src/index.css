@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+*{
+    font-family: "Raleway", sans-serif;
+    scrollbar-width: none;
+}
+
 .flex-center {
     @apply  flex items-center justify-center
+}
+
+.text-border-highlight {
+    -webkit-text-stroke: 1px #00A86B;
+}
+
+input::placeholder {
+    color: #00a86a8e; /* Color por defecto del placeholder */
+}
+
+input:focus::placeholder {
+    color: #00A86B; /* Color del placeholder al enfocar */
 }

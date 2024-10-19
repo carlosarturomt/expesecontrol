@@ -1,8 +1,7 @@
 import Layout from "@layout"
 import { ICONS } from "@assets/icons";
 
-
-export default function Home() {
+export default function ProfilePage() {
 
     return (
         <Layout>

@@ -2,7 +2,7 @@ import { ICONS } from "@assets/icons";
 
 const BackgroundPage = ({ children }) => {
     return (
-        <section className="relative w-full h-full flex items-center flex-col bg-main-dark/5">
+        <section className="relative w-full h-full flex items-center flex-col bg-main-dark/5 overflow-hidden">
             <header className="w-full h-[44vh] flex-center flex-col bg-main-highlight/70">
                 <hgroup className="text-center flex-center gap-1 my-3">
                     <i className="w-[66px] h-[66px] rounded-full flex-center bg-main-light/70 border-2 border-main-highlight">

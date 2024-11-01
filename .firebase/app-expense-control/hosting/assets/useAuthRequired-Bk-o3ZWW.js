@@ -1,1 +1,0 @@
-import{r as e,U as f,u as g,h as l}from"./index-D5vdZXgp.js";function d(s,a){const{user:t}=e.useContext(f),[i,o]=e.useState(!0),[c,n]=e.useState(!1),u=g(),r=l();return e.useEffect(()=>{o(!1)},[]),e.useEffect(()=>{i||(t&&r.pathname!==a?(n(!0),u(a)):!t&&r.pathname!==s?(n(!0),u(s)):n(!1))},[t,i,u,s,a,r.pathname]),{isLoading:i||c,isAuthenticated:!!t}}export{d as u};

@@ -1,10 +1,59 @@
-import Layout from "@layout"
+import { useContext, useState } from "react";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { doc, setDoc } from "firebase/firestore";
+import { db, storage } from "@services/firebase/config";
 import useAuthRequired from "@hooks/useAuthRequired";
 import { Spinner } from "@components/atoms/Spinner";
 import { ICONS } from "@assets/icons";
+import { UserDataContext } from "../../context/userDataContext";
 
 export default function HomePage() {
     const { isLoading, isAuthenticated } = useAuthRequired("/register", "/");
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [gasto, setGasto] = useState("");
+    const [texto, setTexto] = useState("");
+    const [file, setFile] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const { userAuth } = useContext(UserDataContext);
+
+    console.log(userAuth.username);
+
+
+
+    const openModal = () => setIsModalOpen(true);
+    const closeModal = () => setIsModalOpen(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+
+        try {
+            let fileURL = "";
+            if (file) {
+                const storageRef = ref(storage, `userFiles/${userAuth.username}/${file.name}`);
+                await uploadBytes(storageRef, file);
+                fileURL = await getDownloadURL(storageRef);
+            }
+
+            await setDoc(doc(db, "userPosts", userAuth.username), {
+                gasto,
+                texto,
+                fileURL,
+                user: userAuth.username,
+                createdAt: new Date(),
+            });
+
+            setGasto("");
+            setTexto("");
+            setFile(null);
+            closeModal();
+        } catch (error) {
+            console.error("Error al subir datos: ", error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     if (isLoading) {
         return <Spinner bgTheme={true} />;
@@ -25,7 +74,7 @@ export default function HomePage() {
 
             {/* Botones para Agregar Gastos */}
             <section className="w-full max-w-screen-sm flex justify-between items-center gap-2 py-3 px-6">
-                <button className="w-1/2 flex-center gap-1 text-sm font-semibold bg-main-highlight/70 text-white rounded-3xl p-3 transition-colors duration-200 hover:bg-main-primary-dark">
+                <button onClick={openModal} className="w-1/2 flex-center gap-1 text-sm font-semibold bg-main-highlight/70 text-white rounded-3xl p-3 transition-colors duration-200 hover:bg-main-primary-dark">
                     <i className="flex-center w-6 h-6 rounded-full hover:scale-105">{ICONS.plus.fill("#FFFFFF")}</i>
                     Agregar
                 </button>
@@ -34,6 +83,45 @@ export default function HomePage() {
                     Retirar
                 </button>
             </section>
+
+            {isModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex-center z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-lg w-full relative">
+                        <button onClick={closeModal} className="absolute top-3 right-3 text-main-dark text-2xl">&times;</button>
+                        <h2 className="text-xl font-bold mb-4">Agregar Gasto</h2>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <input
+                                type="number"
+                                placeholder="Gasto"
+                                value={gasto}
+                                onChange={(e) => setGasto(e.target.value)}
+                                className="w-full p-2 border border-gray-300 rounded"
+                                required
+                            />
+                            <textarea
+                                placeholder="Descripción"
+                                value={texto}
+                                onChange={(e) => setTexto(e.target.value)}
+                                className="w-full p-2 border border-gray-300 rounded"
+                                required
+                            />
+                            <input
+                                type="file"
+                                onChange={(e) => setFile(e.target.files[0])}
+                                className="w-full p-2"
+                                accept="image/*, .pdf"
+                            />
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="w-full p-2 bg-main-highlight text-white rounded hover:bg-main-primary-dark transition"
+                            >
+                                {isSubmitting ? "Guardando..." : "Guardar"}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             <section className="w-full max-w-screen-sm py-3">
                 <h2 className="text-dark text-lg font-semibold mb-4">Notificaciones</h2>

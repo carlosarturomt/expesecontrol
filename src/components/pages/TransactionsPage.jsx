@@ -17,7 +17,9 @@ export default function TransactionsPage() {
         <div>
             {/* Sección de Gastos Totales */}
             <section className="w-full max-w-screen-sm mt-6 py-3 flex flex-col items-center">
-                <h1 className="text-4xl font-bold text-main-dark my-2">Transacciones</h1>
+                <p className="text-main-dark/50">Transaccione</p>
+                <h1 className="text-4xl font-bold text-main-dark my-2">$17,505.00</h1>
+                <p className="text-main-primary">-$7,000.00</p>
             </section>
 
             {/* Botones para Agregar Gastos */}

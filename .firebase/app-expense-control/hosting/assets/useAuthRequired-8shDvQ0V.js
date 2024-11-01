@@ -1,1 +1,0 @@
-import{r as e,U as n,u as c}from"./index-Bi-ivOmd.js";function d(a,i){const{user:t}=e.useContext(n),[s,r]=e.useState(!0),u=c();return e.useEffect(()=>{const o=setTimeout(()=>{r(!1)},500);return()=>clearTimeout(o)},[]),e.useEffect(()=>{s||u(t?i:a)},[t,s,u,a,i]),{isLoading:s,isAuthenticated:!!t}}export{d as u};

@@ -26,7 +26,7 @@ export const Routes = () => {
 	]);
 
 	return (
-		<Suspense fallback={<Spinner bgTheme={true} />}>
+		<Suspense fallback={<Spinner />}>
 			{routes}
 		</Suspense>
 	);

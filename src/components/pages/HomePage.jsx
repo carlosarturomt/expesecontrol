@@ -18,6 +18,7 @@ export default function HomePage() {
         gasto: "",
         title: "",
         remarks: "",
+        type: "",
         category: "",
         file: null,
         isSubmitting: false,
@@ -73,7 +74,6 @@ export default function HomePage() {
         }));
     };
 
-
     const handleBlur = (e) => {
         const { name } = e.target;
         const cleanedValue = state[name].replace(/[^0-9]/g, "");
@@ -109,6 +109,7 @@ export default function HomePage() {
                 gasto: gastoValue,
                 title: state.title,
                 remarks: state.remarks,
+                type: state.type,
                 category: state.category,
                 fileURL,
                 user: userAuth.username,
@@ -157,10 +158,6 @@ export default function HomePage() {
                     <i className="flex-center w-6 h-6 rounded-full hover:scale-105">{ICONS.plus.fill("#FFFFFF")}</i>
                     Agregar Gasto
                 </button>
-                {/* <button className="w-1/2 flex-center gap-1 text-sm font-semibold bg-main-dark/70 text-white rounded-3xl p-3 transition-colors duration-200 hover:bg-main-primary-dark">
-                    <i className="flex-center w-6 h-6 rounded-full hover:scale-105">{ICONS.subtract.fill("#FFFFFF")}</i>
-                    Retirar
-                </button> */}
             </section>
 
             {state.isModalOpen && (
@@ -207,7 +204,16 @@ export default function HomePage() {
                                 </hgroup>
 
                                 <div className="rounded-3xl p-4 mb-4 bg-main-light">
-                                    <select value={state.category} onChange={handleChange} className="w-full bg-transparent">
+                                    <select value={state.type} onChange={handleChange} className="w-full bg-transparent">
+                                        <option value="" hidden className="text-main-gray">Pago con</option>
+                                        <option value={"likeU"}>LikeU</option>
+                                        <option value={"AMEX"}>AMEX</option>
+                                        <option value={"cash"}>Efectivo</option>
+                                    </select>
+                                </div>
+
+                                <div className="rounded-3xl p-4 mb-4 bg-main-light">
+                                    <select value={state.type} onChange={handleChange} className="w-full bg-transparent">
                                         <option value="" hidden className="text-main-gray">Categorías</option>
                                         <option value={"feeding"}>Alimentación y Bebidas</option>
                                         <option value={"transportation"}>Transporte</option>

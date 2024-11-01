@@ -1,1 +1,0 @@
-import{r as e,U as f,e as g,m as l}from"./index-CAIagtez.js";function p(s,a){const{user:t}=e.useContext(f),[i,o]=e.useState(!0),[c,n]=e.useState(!1),r=g(),u=l();return e.useEffect(()=>{o(!1)},[]),e.useEffect(()=>{i||(t&&u.pathname!==a?(n(!0),r(a)):!t&&u.pathname!==s?(n(!0),r(s)):n(!1))},[t,i,r,s,a,u.pathname]),{isLoading:i||c,isAuthenticated:!!t}}export{p as u};

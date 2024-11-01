@@ -1,0 +1,1 @@
+import{r as e,U as c,f as g,p}from"./index-Clm7elC_.js";function d(s,a){const{user:t}=e.useContext(c),[i,f]=e.useState(!0),[o,n]=e.useState(!1),r=g(),u=p();return e.useEffect(()=>{f(!1)},[]),e.useEffect(()=>{i||(t&&u.pathname!==a?(n(!0),r(a)):!t&&u.pathname!==s?(n(!0),r(s)):n(!1))},[t,i,r,s,a,u.pathname]),{isLoading:i||o,isAuthenticated:!!t}}export{d as u};

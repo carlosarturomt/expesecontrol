@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { addDoc, collection, doc, getDocs, setDoc } from "firebase/firestore";
+import { addDoc, collection, doc, getDocs, query, setDoc, where } from "firebase/firestore";
 import { db, storage } from "@services/firebase/config";
 import useAuthRequired from "@hooks/useAuthRequired";
 import { Spinner } from "@components/atoms/Spinner";
@@ -21,23 +21,127 @@ export default function HomePage() {
         type: "",
         category: "",
         file: null,
+        date: new Date().toISOString().substring(0, 10),
         isSubmitting: false,
-        error: "", // Añadido para manejar errores
+        error: "",
     });
+
+    const [totalGastos, setTotalGastos] = useState(0);
 
     const openModal = () => setState(prev => ({ ...prev, isModalOpen: true }));
     const closeModal = () => setState(prev => ({ ...prev, isModalOpen: false }));
 
     useEffect(() => {
         const fetchGastos = async () => {
+            const day = new Date().getDate(); // Cambiado a getDate() para obtener el día del mes
+            const year = new Date().getFullYear();
+            const month = new Date().getMonth();
+
+            const startDate = new Date(year, month - (day < 12 ? 1 : 0), 12); // Desde el 12 del mes anterior o actual
+            const endDate = new Date(year, month + 1 - (day < 12 ? 0 : 1), 11, 23, 59, 59); // Hasta el 11 del mes siguiente
+
+
+            let period = "";
+
+            // Determinación del periodo
+            if (day < 12) {
+                // Si el día es menor a 12, consideramos el mes anterior
+                switch (month) {
+                    case 0: // Enero
+                        period = "diciembreEnero";
+                        break;
+                    case 1: // Febrero
+                        period = "eneroFebrero";
+                        break;
+                    case 2: // Marzo
+                        period = "febreroMarzo";
+                        break;
+                    case 3: // Abril
+                        period = "marzoAbril";
+                        break;
+                    case 4: // Mayo
+                        period = "abrilMayo";
+                        break;
+                    case 5: // Junio
+                        period = "mayoJunio";
+                        break;
+                    case 6: // Julio
+                        period = "junioJulio";
+                        break;
+                    case 7: // Agosto
+                        period = "julioAgosto";
+                        break;
+                    case 8: // Septiembre
+                        period = "agostoSeptiembre";
+                        break;
+                    case 9: // Octubre
+                        period = "septiembreOctubre";
+                        break;
+                    case 10: // Noviembre
+                        period = "octubreNoviembre";
+                        break;
+                    case 11: // Diciembre
+                        period = "noviembreDiciembre";
+                        break;
+                    default:
+                        period = "desconocido";
+                }
+            } else {
+                // Si el día es 12 o mayor, consideramos el mes actual
+                switch (month) {
+                    case 0:
+                        period = "eneroFebrero";
+                        break;
+                    case 1:
+                        period = "febreroMarzo";
+                        break;
+                    case 2:
+                        period = "marzoAbril";
+                        break;
+                    case 3:
+                        period = "abrilMayo";
+                        break;
+                    case 4:
+                        period = "mayoJunio";
+                        break;
+                    case 5:
+                        period = "junioJulio";
+                        break;
+                    case 6:
+                        period = "julioAgosto";
+                        break;
+                    case 7:
+                        period = "agostoSeptiembre";
+                        break;
+                    case 8:
+                        period = "septiembreOctubre";
+                        break;
+                    case 9:
+                        period = "octubreNoviembre";
+                        break;
+                    case 10:
+                        period = "noviembreDiciembre";
+                        break;
+                    case 11:
+                        period = "diciembreEnero";
+                        break;
+                    default:
+                        period = "desconocido";
+                }
+            }
+
             try {
-                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos");
-                const gastosSnap = await getDocs(gastosRef);
-                const gastosList = gastosSnap.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
+                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos", `${year}`, period);
+                const q = query(gastosRef,
+                    where("createdAt", ">=", startDate),
+                    where("createdAt", "<=", endDate)
+                );
+
+                const gastosSnapshot = await getDocs(q);
+                const gastosList = gastosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setState(prev => ({ ...prev, gastos: gastosList, loading: false }));
+                //console.log("userPosts", userAuth.username, "gastos", `${year}`, period);
+                console.log(gastosList);
             } catch (error) {
                 console.error("Error al obtener los gastos: ", error);
                 setState(prev => ({ ...prev, loading: false, error: "Error al obtener los gastos." }));
@@ -46,6 +150,11 @@ export default function HomePage() {
 
         fetchGastos();
     }, [userAuth.username]);
+
+    useEffect(() => {
+        const total = state.gastos.reduce((acc, gasto) => acc + (parseFloat(gasto.gasto) || 0), 0);
+        setTotalGastos(total);
+    }, [state.gastos]);
 
     const formatCurrency = (value) => {
         // Eliminar caracteres no numéricos
@@ -64,7 +173,6 @@ export default function HomePage() {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-
         // Solo formatear si el campo es "gasto"
         const formattedValue = name === "gasto" ? formatCurrency(value) : value;
 
@@ -94,7 +202,107 @@ export default function HomePage() {
         e.preventDefault();
         setState(prev => ({ ...prev, isSubmitting: true }));
 
+        // Validar el valor del gasto
         const gastoValue = parseFloat(state.gasto.replace(/[^0-9.-]+/g, ""));
+        if (isNaN(gastoValue) || gastoValue <= 0) {
+            setState(prev => ({ ...prev, error: "Por favor, ingresa un gasto válido.", isSubmitting: false }));
+            return;
+        }
+
+        // Ajuste para la fecha
+        const date = state.date ? new Date(state.date + 'T00:00:00') : new Date();
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+
+        let period = "";
+
+        // Determinación del periodo
+        if (day < 12) {
+            // Si el día es menor a 12, consideramos el mes anterior
+            switch (month) {
+                case 0: // Enero
+                    period = "diciembreEnero";
+                    break;
+                case 1: // Febrero
+                    period = "eneroFebrero";
+                    break;
+                case 2: // Marzo
+                    period = "febreroMarzo";
+                    break;
+                case 3: // Abril
+                    period = "marzoAbril";
+                    break;
+                case 4: // Mayo
+                    period = "abrilMayo";
+                    break;
+                case 5: // Junio
+                    period = "mayoJunio";
+                    break;
+                case 6: // Julio
+                    period = "junioJulio";
+                    break;
+                case 7: // Agosto
+                    period = "julioAgosto";
+                    break;
+                case 8: // Septiembre
+                    period = "agostoSeptiembre";
+                    break;
+                case 9: // Octubre
+                    period = "septiembreOctubre";
+                    break;
+                case 10: // Noviembre
+                    period = "octubreNoviembre";
+                    break;
+                case 11: // Diciembre
+                    period = "noviembreDiciembre";
+                    break;
+                default:
+                    period = "desconocido";
+            }
+        } else {
+            // Si el día es 12 o mayor, consideramos el mes actual
+            switch (month) {
+                case 0:
+                    period = "eneroFebrero";
+                    break;
+                case 1:
+                    period = "febreroMarzo";
+                    break;
+                case 2:
+                    period = "marzoAbril";
+                    break;
+                case 3:
+                    period = "abrilMayo";
+                    break;
+                case 4:
+                    period = "mayoJunio";
+                    break;
+                case 5:
+                    period = "junioJulio";
+                    break;
+                case 6:
+                    period = "julioAgosto";
+                    break;
+                case 7:
+                    period = "agostoSeptiembre";
+                    break;
+                case 8:
+                    period = "septiembreOctubre";
+                    break;
+                case 9:
+                    period = "octubreNoviembre";
+                    break;
+                case 10:
+                    period = "noviembreDiciembre";
+                    break;
+                case 11:
+                    period = "diciembreEnero";
+                    break;
+                default:
+                    period = "desconocido";
+            }
+        }
 
         try {
             let fileURL = "";
@@ -104,19 +312,21 @@ export default function HomePage() {
                 fileURL = await getDownloadURL(storageRef);
             }
 
-            const gastosRef = collection(db, "userPosts", userAuth.username, "gastos");
+            // Ruta de Firestore basada en año y periodo
+            const gastosRef = collection(db, "userPosts", userAuth.username, "gastos", String(year), period);
+
             await addDoc(gastosRef, {
                 gasto: gastoValue,
                 title: state.title,
                 remarks: state.remarks,
                 type: state.type,
                 category: state.category,
-                fileURL,
+                fileURL: fileURL || "",
                 user: userAuth.username,
-                createdAt: new Date(),
+                createdAt: date,
             });
 
-            // Resetear estado después de enviar
+            // Resetear el estado después de enviar
             setState(prev => ({
                 ...prev,
                 gasto: "",
@@ -129,11 +339,12 @@ export default function HomePage() {
             }));
         } catch (error) {
             console.error("Error al subir datos: ", error);
-            setState(prev => ({ ...prev, error: "Error al subir los datos.", isSubmitting: false }));
+            setState(prev => ({ ...prev, error: "Error al subir los datos: " + error.message, isSubmitting: false }));
         } finally {
             setState(prev => ({ ...prev, isSubmitting: false }));
         }
     };
+
 
     if (isLoading || state.loading) {
         return <Spinner bgTheme={true} />;
@@ -148,7 +359,7 @@ export default function HomePage() {
             {/* Sección de Gastos Totales */}
             <section className="w-full max-w-screen-sm mt-6 py-3 flex flex-col items-center">
                 <p className="text-main-dark/50">Gastos Totales</p>
-                <h1 className="text-4xl font-bold text-main-dark my-2">$17,505.00</h1>
+                <h1 className="text-4xl font-bold text-main-dark my-2">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h1>
                 <p className="text-main-primary">-$7,000.00</p>
             </section>
 
@@ -204,7 +415,7 @@ export default function HomePage() {
                                 </hgroup>
 
                                 <div className="rounded-3xl p-4 mb-4 bg-main-light">
-                                    <select value={state.type} onChange={handleChange} className="w-full bg-transparent">
+                                    <select name="type" value={state.type} onChange={handleChange} className="w-full bg-transparent outline-none">
                                         <option value="" hidden className="text-main-gray">Pago con</option>
                                         <option value={"likeU"}>LikeU</option>
                                         <option value={"AMEX"}>AMEX</option>
@@ -213,7 +424,7 @@ export default function HomePage() {
                                 </div>
 
                                 <div className="rounded-3xl p-4 mb-4 bg-main-light">
-                                    <select value={state.type} onChange={handleChange} className="w-full bg-transparent">
+                                    <select name="category" value={state.category} onChange={handleChange} className="w-full bg-transparent outline-none">
                                         <option value="" hidden className="text-main-gray">Categorías</option>
                                         <option value={"feeding"}>Alimentación y Bebidas</option>
                                         <option value={"transportation"}>Transporte</option>
@@ -223,6 +434,17 @@ export default function HomePage() {
                                         <option value={"entertainment"}>Entretenimiento y Ocio</option>
                                         <option value={"personalCare"}>Ropa y Cuidado Personal</option>
                                     </select>
+                                </div>
+
+                                <div className="rounded-3xl p-4 mb-4 bg-main-light">
+                                    <input
+                                        id="date"
+                                        name="date"
+                                        type="date"
+                                        value={state.date}
+                                        onChange={handleChange}
+                                        className="w-full bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
+                                    />
                                 </div>
 
                                 <div className="rounded-3xl p-4 mb-4 bg-main-light">
@@ -275,13 +497,19 @@ export default function HomePage() {
             <section className="w-full max-w-screen-sm py-3 mb-20">
                 <h2 className="text-main-dark text-lg font-semibold mb-4">Últimos Gastos</h2>
                 <ul className="space-y-3">
-                    {state.gastos.length > 0 ? (
-                        state.gastos.map((gasto) => (
-                            <li key={gasto.id} className="flex justify-between items-center bg-main-dark/5 rounded-3xl p-4">
-                                <span className="text-main-dark font-medium">{gasto.title || 'Gasto desconocido'}</span>
-                                <span className="text-main-primary font-semibold">-${gasto.gasto}</span>
-                            </li>
-                        ))
+                    {state.loading ? (
+                        <Spinner bgTheme={true} />
+                    ) : state.gastos.length > 0 ? (
+                        <ul className="space-y-3">
+                            {state.gastos
+                                .sort((a, b) => b.createdAt - a.createdAt).slice(0, 6)
+                                .map(gasto => (
+                                    <li key={gasto.id} className="flex justify-between items-center bg-main-dark/5 rounded-3xl p-4">
+                                        <span className="text-main-dark font-medium">{gasto.title || 'Gasto desconocido'}</span>
+                                        <span className="text-main-primary font-semibold">-${gasto.gasto}</span>
+                                    </li>
+                                ))}
+                        </ul>
                     ) : (
                         <li className="flex justify-between items-center bg-main-dark/5 rounded-3xl p-4">
                             <span className="text-main-dark font-medium">No hay gastos registrados</span>

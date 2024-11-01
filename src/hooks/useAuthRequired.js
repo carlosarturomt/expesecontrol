@@ -1,30 +1,31 @@
 import { useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { UserDataContext } from "@context/userDataContext";
 
 export default function useAuthRequired(navToIsNotAuth, navToIsAuth) {
     const { user } = useContext(UserDataContext);
     const [isLoading, setIsLoading] = useState(true);
+    const [isNavigating, setIsNavigating] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
-        // Simulación de carga
-        const timeoutId = setTimeout(() => {
-            setIsLoading(false);
-        }, 500);
-
-        return () => clearTimeout(timeoutId);
+        setIsLoading(false);
     }, []);
 
     useEffect(() => {
         if (!isLoading) {
-            if (user) {
-                navigate(navToIsAuth); // Redirige a la ruta especificada si el usuario ESTÁ autenticado
+            if (user && location.pathname !== navToIsAuth) {
+                setIsNavigating(true);
+                navigate(navToIsAuth);
+            } else if (!user && location.pathname !== navToIsNotAuth) {
+                setIsNavigating(true);
+                navigate(navToIsNotAuth);
             } else {
-                navigate(navToIsNotAuth); // Redirige a la ruta especificada si el usuario NO está autenticado
+                setIsNavigating(false);
             }
         }
-    }, [user, isLoading, navigate, navToIsNotAuth, navToIsAuth]);
+    }, [user, isLoading, navigate, navToIsNotAuth, navToIsAuth, location.pathname]);
 
-    return { isLoading, isAuthenticated: !!user };
+    return { isLoading: isLoading || isNavigating, isAuthenticated: !!user };
 }

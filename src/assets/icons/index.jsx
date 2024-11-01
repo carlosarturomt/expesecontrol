@@ -9,6 +9,11 @@ export const ICONS = {
 			</svg>
 		),
 	},
+	add: {
+		border: (color) => (
+			<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24"><path fill={color} d="M13 4v7h7v2h-7v7h-2v-7H4v-2h7V4z" /></svg>
+		),
+	},
 	mail: {
 		border: (color) => (
 			<svg

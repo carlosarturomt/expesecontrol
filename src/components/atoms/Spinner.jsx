@@ -1,4 +1,4 @@
-export default function Spinner(props) {
+const Spinner = (props) => {
 	return (
 		<div
 			className={`${
@@ -12,3 +12,5 @@ export default function Spinner(props) {
 		</div>
 	);
 }
+
+export { Spinner };

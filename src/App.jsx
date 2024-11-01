@@ -1,12 +1,15 @@
-import { UserDataContext } from "./context/userDataContext";
-import { useContext } from "react";
-import { RegisterPage } from "./components/pages/RegisterPage";
-import ProfilePage from "./components/pages/ProfilePage";
+import ErrorBoundary from "./utils/ErrorBoundary";
+import { UserDataProvider } from "./context/userDataContext";
+import { Routes } from "./routes";
 
 function App() {
-	const { user } = useContext(UserDataContext);
-
-    return user ? <ProfilePage /> : <RegisterPage />;
+    return (
+        <ErrorBoundary>
+            <UserDataProvider>
+                <Routes />
+            </UserDataProvider>
+        </ErrorBoundary>
+    );
 }
 
 export default App;

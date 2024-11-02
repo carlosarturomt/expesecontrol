@@ -7,6 +7,7 @@ const NavigationFooter = () => {
     return (
         <footer className="fixed w-[95%] max-w-screen-sm mx-auto bottom-3 rounded-full p-2 flex items-center justify-evenly font-semibold backdrop-blur-sm text-main-light bg-main-highlight/70 shadow-lg">
             <ul className="w-full flex items-center justify-between">
+                {/* Dashboard */}
                 <NavLink to={'/'} className={`flex-center rounded-full transition-all duration-500 ease-in-out text-main-dark
                 ${location === '/' && 'bg-main-light py-1 px-4'}
                 `}>
@@ -25,14 +26,20 @@ const NavigationFooter = () => {
                         Transacciones
                     </span>
                 </NavLink>
+                {/* Análisis */}
                 <li className="flex-center gap-2">
                     <i className="flex-center w-11 h-11 p-3 rounded-full bg-main-light/40">{ICONS.barchart.fill("#F5F6FA")}</i>
-                    {/* Análisis */}
                 </li>
-                <li className="flex-center gap-2">
-                    <i className="flex-center w-11 h-11 p-3 rounded-full bg-main-light/40">{ICONS.star.fill("#F5F6FA")}</i>
-                    {/* Metas */}
-                </li>
+                {/* Metas */}
+                <NavLink to={!location.includes('profile') && 'profile'}
+                    className={`flex-center gap-2 rounded-full transition-all duration-500 ease-in-out text-main-dark
+                    ${location.includes('profile') && 'bg-main-light py-1 px-4'}
+                    `}>
+                    <i className={`flex-center rounded-full transition-all duration-300 ease-in-out ${location.includes('profile') ? 'w-9 h-9 px-1' : 'w-11 h-11 p-3 bg-main-light/40'}`}>{ICONS.star.fill(location.includes('profile') ? "#1C1C1E" : "#F5F6FA")}</i>
+                    <span className={`${location.includes('profile') ? 'block pr-1' : 'hidden'}`}>
+                        Profile
+                    </span>
+                </NavLink>
             </ul>
         </footer>
     );

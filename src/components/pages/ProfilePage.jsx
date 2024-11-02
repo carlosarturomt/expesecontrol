@@ -1,80 +1,96 @@
+import { useContext, useEffect, useState } from "react";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { addDoc, collection, doc, getDocs, query, setDoc, where, updateDoc } from "firebase/firestore";
+import { auth, db, storage } from "@services/firebase/config";
+import useAuthRequired from "@hooks/useAuthRequired";
+import { UserDataContext } from "@context/userDataContext";
+import { Spinner } from "@components/atoms/Spinner";
 import { ICONS } from "@assets/icons";
+import { useNavigate } from "react-router-dom";
+import { signOut } from "firebase/auth";
 
 export default function ProfilePage() {
+    const { isLoading, isAuthenticated } = useAuthRequired("/register", "/profile");
+    const { userAuth, userData, state, setState } = useContext(UserDataContext);
+
+    const navigate = useNavigate();
+
+    // Estado para el nuevo presupuesto
+    const [newBudget, setNewBudget] = useState(userData?.budget || 0);
+
+    const handleLogout = () => {
+        signOut(auth)
+            .then(() => {
+                navigate("/");
+                console.log("Signed out successfully");
+                window.location.reload();
+            })
+            .catch((error) => {
+                console.log("error");
+            });
+    };
+
+    // Función para manejar la actualización del presupuesto
+    const handleUpdateBudget = async (e) => {
+        e.preventDefault(); // Prevenir el comportamiento por defecto del formulario
+
+        if (userData) {
+            const userDocRef = doc(db, "userData", userData.id); // Cambia 'userData' por el nombre de tu colección y 'id' por la clave de usuario
+
+            try {
+                await updateDoc(userDocRef, {
+                    budget: newBudget,
+                });
+                console.log("Budget updated successfully");
+                // Opcional: Actualizar el estado local o realizar alguna otra acción tras la actualización
+            } catch (error) {
+                console.error("Error updating budget:", error);
+            }
+        }
+    };
+
+    if (isLoading) {
+        return <Spinner bgTheme={true} />;
+    }
+
+    if (!isAuthenticated) {
+        return null;
+    }
 
     return (
         <div>
-            {/* Sección de Gastos Totales */}
             <section className="w-full max-w-screen-sm mt-6 py-3 flex flex-col items-center">
-                <p className="text-main-dark/50">Gastos Totales</p>
-                <h1 className="text-4xl font-bold text-main-dark my-2">$17,505.00</h1>
-                <p className="text-main-primary">-$7,000.00</p>
+                <p className="text-main-dark/50">Profile</p>
+                <h1 className="text-4xl font-bold text-main-dark my-2">{userData && userData.contactInf.username}</h1>
+                <p className="text-main-primary">{userData && userData.contactInf.email}</p>
             </section>
 
-            {/* Botones para Agregar Gastos */}
-            <section className="w-full max-w-screen-sm flex justify-between items-center gap-2 py-3 px-6">
-                <button className="w-1/2 flex-center gap-1 text-sm font-semibold bg-main-highlight/70 text-white rounded-3xl p-3 transition-colors duration-200 hover:bg-main-primary-dark">
-                    <i className="flex-center w-6 h-6 rounded-full hover:scale-105">{ICONS.plus.fill("#FFFFFF")}</i>
-                    Agregar
-                </button>
-                <button className="w-1/2 flex-center gap-1 text-sm font-semibold bg-main-dark/70 text-white rounded-3xl p-3 transition-colors duration-200 hover:bg-main-primary-dark">
-                    <i className="flex-center w-6 h-6 rounded-full hover:scale-105">{ICONS.subtract.fill("#FFFFFF")}</i>
-                    Retirar
-                </button>
+            <section className="w-full max-w-screen-sm py-6">
+                <form onSubmit={handleUpdateBudget}>
+                    <label htmlFor="budget" className="block mb-2 text-sm font-medium text-gray-700">
+                        Budget
+                    </label>
+
+                    <hgroup className="rounded-3xl py-2 px-4 mb-4 bg-main-dark/5 ">
+                        <div className="flex-center pt-2 py-2">
+                            $
+                            <input
+                                name="gasto"
+                                type="text" // Mantener como texto para manejar el formato
+                                placeholder="$ $"
+                                value={newBudget}
+                                onChange={(e) => setNewBudget(Number(e.target.value))}
+                                className="w-full pl-1 bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
+                                required
+                            />
+                            MXN
+                        </div>
+                    </hgroup>
+
+                    <button type="submit" className="border rounded-3xl p-4 font-semibold text-main-dark">Update Budget</button>
+                </form>
+                <button onClick={handleLogout} className="border rounded-3xl p-4 font-semibold text-main-dark mt-4">Log out</button>
             </section>
-
-            <section className="w-full max-w-screen-sm py-3">
-                <h2 className="text-dark text-lg font-semibold mb-4">Notificaciones</h2>
-                <div className="bg-main-warning rounded-3xl p-4">
-                    <p className="text-dark font-medium">¡Alerta! Has superado tu presupuesto mensual en un 75.05%.</p>
-                </div>
-            </section>
-
-            <section className="w-full max-w-screen-sm py-3">
-                <h2 className="text-main-dark text-lg font-semibold mb-4">Resumen Mensual</h2>
-                <div className="bg-main-dark/5 rounded-3xl p-4 flex justify-between items-center">
-                    <span className="text-main-dark">Presupuesto</span>
-                    <span className="text-main-dark font-semibold">$10,000.00</span>
-                </div>
-                <div className="bg-main-dark/5 rounded-3xl p-4 flex justify-between items-center mt-2">
-                    <span className="text-main-dark">Gastos Totales</span>
-                    <span className="text-main-dark font-semibold">-$17,505.00</span>
-                </div>
-                <div className="bg-main-primary/20 rounded-3xl p-4 flex justify-between items-center mt-2">
-                    <span className="text-main-primary font-semibold">Exceso</span>
-                    <span className="text-main-primary font-semibold">- $7,505.00 (75.05%)</span>
-                </div>
-            </section>
-
-            {/* <section className="w-full max-w-screen-sm py-6 mb-6">
-                <h2 className="text-main-dark text-lg font-semibold mb-4">Objetivos Financieros</h2>
-                <div className="bg-main-dark/5 rounded-3xl p-4">
-                    <p className="text-main-dark">Ahorra para un viaje</p>
-                    <div className="bg-blue-500 rounded-full h-2" style={{ width: "60%" }}></div>
-                    <p className="text-main-primary font-semibold">Progreso: $600.00 / $1,000.00</p>
-                </div>
-            </section> */}
-
-
-            {/* Sección de Últimos Gastos */}
-            <section className="w-full max-w-screen-sm py-3 mb-20">
-                <h2 className="text-main-dark text-lg font-semibold mb-4">Últimos Gastos</h2>
-                <ul className="space-y-3">
-                    <li className="flex justify-between items-center bg-main-dark/5 rounded-3xl p-4">
-                        <span className="text-main-dark font-medium">Comida</span>
-                        <span className="text-main-primary font-semibold">-$500.00</span>
-                    </li>
-                    <li className="flex justify-between items-center bg-main-dark/5 rounded-3xl p-4">
-                        <span className="text-main-dark font-medium">Transporte</span>
-                        <span className="text-main-primary font-semibold">-$300.00</span>
-                    </li>
-                    <li className="flex justify-between items-center bg-main-dark/5 rounded-3xl p-4">
-                        <span className="text-main-dark font-medium">Entretenimiento</span>
-                        <span className="text-main-primary font-semibold">-$150.00</span>
-                    </li>
-                </ul>
-            </section>
-
         </div>
-    )
+    );
 }

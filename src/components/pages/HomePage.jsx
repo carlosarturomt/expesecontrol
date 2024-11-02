@@ -8,148 +8,13 @@ import { ICONS } from "@assets/icons";
 import { UserDataContext } from "../../context/userDataContext";
 
 export default function HomePage() {
-    const { isLoading, isAuthenticated } = useAuthRequired("/register", "/");
-    const { userAuth } = useContext(UserDataContext);
-
-    const [state, setState] = useState({
-        gastos: [],
-        loading: true,
-        isModalOpen: false,
-        gasto: "",
-        title: "",
-        remarks: "",
-        type: "",
-        category: "",
-        file: null,
-        date: new Date().toISOString().substring(0, 10),
-        isSubmitting: false,
-        error: "",
-    });
-
+    const [expandedGastoId, setExpandedGastoId] = useState(null);
+    const { isAuthenticated } = useAuthRequired("/register", "/");
+    const { userAuth, userData, state, setState } = useContext(UserDataContext);
     const [totalGastos, setTotalGastos] = useState(0);
 
     const openModal = () => setState(prev => ({ ...prev, isModalOpen: true }));
     const closeModal = () => setState(prev => ({ ...prev, isModalOpen: false }));
-
-    useEffect(() => {
-        const fetchGastos = async () => {
-            const day = new Date().getDate(); // Cambiado a getDate() para obtener el día del mes
-            const year = new Date().getFullYear();
-            const month = new Date().getMonth();
-
-            const startDate = new Date(year, month - (day < 12 ? 1 : 0), 12); // Desde el 12 del mes anterior o actual
-            const endDate = new Date(year, month + 1 - (day < 12 ? 0 : 1), 11, 23, 59, 59); // Hasta el 11 del mes siguiente
-
-
-            let period = "";
-
-            // Determinación del periodo
-            if (day < 12) {
-                // Si el día es menor a 12, consideramos el mes anterior
-                switch (month) {
-                    case 0: // Enero
-                        period = "diciembreEnero";
-                        break;
-                    case 1: // Febrero
-                        period = "eneroFebrero";
-                        break;
-                    case 2: // Marzo
-                        period = "febreroMarzo";
-                        break;
-                    case 3: // Abril
-                        period = "marzoAbril";
-                        break;
-                    case 4: // Mayo
-                        period = "abrilMayo";
-                        break;
-                    case 5: // Junio
-                        period = "mayoJunio";
-                        break;
-                    case 6: // Julio
-                        period = "junioJulio";
-                        break;
-                    case 7: // Agosto
-                        period = "julioAgosto";
-                        break;
-                    case 8: // Septiembre
-                        period = "agostoSeptiembre";
-                        break;
-                    case 9: // Octubre
-                        period = "septiembreOctubre";
-                        break;
-                    case 10: // Noviembre
-                        period = "octubreNoviembre";
-                        break;
-                    case 11: // Diciembre
-                        period = "noviembreDiciembre";
-                        break;
-                    default:
-                        period = "desconocido";
-                }
-            } else {
-                // Si el día es 12 o mayor, consideramos el mes actual
-                switch (month) {
-                    case 0:
-                        period = "eneroFebrero";
-                        break;
-                    case 1:
-                        period = "febreroMarzo";
-                        break;
-                    case 2:
-                        period = "marzoAbril";
-                        break;
-                    case 3:
-                        period = "abrilMayo";
-                        break;
-                    case 4:
-                        period = "mayoJunio";
-                        break;
-                    case 5:
-                        period = "junioJulio";
-                        break;
-                    case 6:
-                        period = "julioAgosto";
-                        break;
-                    case 7:
-                        period = "agostoSeptiembre";
-                        break;
-                    case 8:
-                        period = "septiembreOctubre";
-                        break;
-                    case 9:
-                        period = "octubreNoviembre";
-                        break;
-                    case 10:
-                        period = "noviembreDiciembre";
-                        break;
-                    case 11:
-                        period = "diciembreEnero";
-                        break;
-                    default:
-                        period = "desconocido";
-                }
-            }
-
-            try {
-                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos", `${year}`, period);
-                const q = query(gastosRef,
-                    where("createdAt", ">=", startDate),
-                    where("createdAt", "<=", endDate)
-                );
-
-                const gastosSnapshot = await getDocs(q);
-                const gastosList = gastosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                setState(prev => ({ ...prev, gastos: gastosList, loading: false }));
-                //console.log("userPosts", userAuth.username, "gastos", `${year}`, period);
-                console.log(gastosList);
-            } catch (error) {
-                console.error("Error al obtener los gastos: ", error);
-                setState(prev => ({ ...prev, loading: false, error: "Error al obtener los gastos." }));
-            }
-        };
-
-        fetchGastos();
-    }, [userAuth.username]);
 
     useEffect(() => {
         const total = state.gastos.reduce((acc, gasto) => acc + (parseFloat(gasto.gasto) || 0), 0);
@@ -345,9 +210,14 @@ export default function HomePage() {
         }
     };
 
+    const cashToUse = ((userData && userData.budget) - (totalGastos))
 
-    if (isLoading || state.loading) {
-        return <Spinner bgTheme={true} />;
+    const handleCardClick = (id) => {
+        setExpandedGastoId(expandedGastoId === id ? null : id);
+    };
+
+    if (state.loading) {
+        return <Spinner />;
     }
 
     if (!isAuthenticated) {
@@ -360,7 +230,9 @@ export default function HomePage() {
             <section className="w-full max-w-screen-sm mt-6 py-3 flex flex-col items-center">
                 <p className="text-main-dark/50">Gastos Totales</p>
                 <h1 className="text-4xl font-bold text-main-dark my-2">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h1>
-                <p className="text-main-primary">-$7,000.00</p>
+                <p className={`${cashToUse < 0 ? 'text-main-primary' : 'text-main-highlight'}`}>
+                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(cashToUse.toFixed(2))}
+                </p>
             </section>
 
             {/* Botones para Agregar Gastos */}
@@ -371,105 +243,6 @@ export default function HomePage() {
                 </button>
             </section>
 
-            {state.isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex-center z-50">
-                    <div className="bg-white rounded-lg max-w-lg w-full h-[95%] relative">
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <button onClick={closeModal} className="p-2 text-main-primary">Cancelar</button>
-
-                                <button
-                                    type="submit"
-                                    disabled={state.isSubmitting}
-                                    className="p-2 text-main-highlight rounded hover:bg-main-primary-dark transition"
-                                >
-                                    {state.isSubmitting ? "Guardando..." : "Agregar"}
-                                </button>
-                            </div>
-
-                            <div className="px-2">
-                                <hgroup className="rounded-3xl py-2 px-4 mb-4 bg-main-light">
-                                    <input
-                                        name="title"
-                                        type="text"
-                                        placeholder="Concepto"
-                                        value={state.title}
-                                        onChange={handleChange}
-                                        className="w-full py-2 bg-transparent outline-none border-b border-main-dark/20 text-main-dark placeholder:text-main-dark/50"
-                                        required
-                                    />
-                                    <div className="flex-center pt-2 py-2">
-                                        $
-                                        <input
-                                            name="gasto"
-                                            type="text" // Mantener como texto para manejar el formato
-                                            placeholder="$ $"
-                                            value={state.gasto}
-                                            onChange={handleChange}
-                                            onBlur={handleBlur} // Formato al perder el foco
-                                            className="w-full pl-1 bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
-                                            required
-                                        />
-                                        MXN
-                                    </div>
-                                </hgroup>
-
-                                <div className="rounded-3xl p-4 mb-4 bg-main-light">
-                                    <select name="type" value={state.type} onChange={handleChange} className="w-full bg-transparent outline-none">
-                                        <option value="" hidden className="text-main-gray">Pago con</option>
-                                        <option value={"likeU"}>LikeU</option>
-                                        <option value={"AMEX"}>AMEX</option>
-                                        <option value={"cash"}>Efectivo</option>
-                                    </select>
-                                </div>
-
-                                <div className="rounded-3xl p-4 mb-4 bg-main-light">
-                                    <select name="category" value={state.category} onChange={handleChange} className="w-full bg-transparent outline-none">
-                                        <option value="" hidden className="text-main-gray">Categorías</option>
-                                        <option value={"feeding"}>Alimentación y Bebidas</option>
-                                        <option value={"transportation"}>Transporte</option>
-                                        <option value={"health"}>Salud y Bienestar</option>
-                                        <option value={"educationJob"}>Gastos de Educación o Trabajo</option>
-                                        <option value={"housing"}>Vivienda</option>
-                                        <option value={"entertainment"}>Entretenimiento y Ocio</option>
-                                        <option value={"personalCare"}>Ropa y Cuidado Personal</option>
-                                    </select>
-                                </div>
-
-                                <div className="rounded-3xl p-4 mb-4 bg-main-light">
-                                    <input
-                                        id="date"
-                                        name="date"
-                                        type="date"
-                                        value={state.date}
-                                        onChange={handleChange}
-                                        className="w-full bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
-                                    />
-                                </div>
-
-                                <div className="rounded-3xl p-4 mb-4 bg-main-light">
-                                    <input
-                                        name="file"
-                                        type="file"
-                                        onChange={handleChange}
-                                        className="w-full"
-                                        accept="image/*, .pdf"
-                                    />
-                                </div>
-
-                                <textarea
-                                    name="remarks"
-                                    placeholder="Observaciones"
-                                    value={state.remarks}
-                                    onChange={handleChange}
-                                    rows="4"
-                                    className="w-full rounded-3xl p-4 mb-4 outline-none bg-main-light"
-                                />
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
             <section className="w-full max-w-screen-sm py-3">
                 <h2 className="text-dark text-lg font-semibold mb-4">Notificaciones</h2>
                 <div className="bg-main-warning rounded-3xl p-4">
@@ -481,16 +254,21 @@ export default function HomePage() {
                 <h2 className="text-main-dark text-lg font-semibold mb-4">Resumen Mensual</h2>
                 <div className="bg-main-dark/5 rounded-3xl p-4 flex justify-between items-center">
                     <span className="text-main-dark">Presupuesto</span>
-                    <span className="text-main-dark font-semibold">$10,000.00</span>
+                    <span className="text-main-dark font-semibold"> {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(userData.budget)}
+                    </span>
                 </div>
                 <div className="bg-main-dark/5 rounded-3xl p-4 flex justify-between items-center mt-2">
                     <span className="text-main-dark">Gastos Totales</span>
-                    <span className="text-main-dark font-semibold">-$17,505.00</span>
+                    <span className="text-main-dark font-semibold">-${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-                <div className="bg-main-primary/20 rounded-3xl p-4 flex justify-between items-center mt-2">
+                <div className={`${totalGastos < 0 ? 'bg-main-primary/40' : 'bg-main-highlight/40'} rounded-3xl p-4 flex justify-between items-center mt-2`}>
+                    <span className="text-main-dark">Saldo Actual</span>
+                    <span className={`${totalGastos < 0 ? 'text-main-primary' : 'text-main-dark'} font-semibold`}>{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(userData.budget - totalGastos)}</span>
+                </div>
+                {/* <div className="bg-main-primary/20 rounded-3xl p-4 flex justify-between items-center mt-2">
                     <span className="text-main-primary font-semibold">Exceso</span>
                     <span className="text-main-primary font-semibold">- $7,505.00 (75.05%)</span>
-                </div>
+                </div> */}
             </section>
 
             {/* Sección de Últimos Gastos */}
@@ -503,12 +281,42 @@ export default function HomePage() {
                         <ul className="space-y-3">
                             {state.gastos
                                 .sort((a, b) => b.createdAt - a.createdAt).slice(0, 6)
-                                .map(gasto => (
-                                    <li key={gasto.id} className="flex justify-between items-center bg-main-dark/5 rounded-3xl p-4">
-                                        <span className="text-main-dark font-medium">{gasto.title || 'Gasto desconocido'}</span>
-                                        <span className="text-main-primary font-semibold">-${gasto.gasto}</span>
-                                    </li>
-                                ))}
+                                .map(gasto => {
+                                    const timestamp = typeof gasto.createdAt === 'number' ? gasto.createdAt : parseInt(gasto.createdAt, 10);
+                                    return (
+                                        <li key={gasto.id} className="flex flex-col bg-main-dark/5 rounded-3xl p-4 cursor-pointer" >
+                                            <div
+                                                className="flex justify-between items-center "
+                                                onClick={() => handleCardClick(gasto.id)}
+                                            >
+                                                <span className="text-main-dark font-medium">{gasto.title || 'Gasto desconocido'}</span>
+                                                <span className="text-main-primary font-semibold">
+                                                    -{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(gasto.gasto)}
+                                                </span>
+                                            </div>
+
+                                            {expandedGastoId === gasto.id && (
+                                                <div className="mt-2">
+                                                    <p className="text-main-dark">Detalles del gasto:</p>
+                                                    <p className="text-main-dark">{gasto.category || 'Sin categoria'}</p>
+                                                    <p className="text-main-dark">{gasto.type || 'Sin tipo de gasto'}</p>
+                                                    <p className="text-main-dark">{gasto.remarks || 'Sin observaciones'}</p>
+                                                    <p className="text-main-dark">{gasto.fileURL || 'Sin archivo adjunto'}</p>
+                                                    <p className="text-main-dark">
+                                                        Fecha: {new Date(timestamp).toLocaleString('es-MX', {
+                                                            year: 'numeric',
+                                                            month: 'long',
+                                                            day: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit',
+                                                            hour12: false,
+                                                        })}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </li>
+                                    )
+                                })}
                         </ul>
                     ) : (
                         <li className="flex justify-between items-center bg-main-dark/5 rounded-3xl p-4">
@@ -517,6 +325,108 @@ export default function HomePage() {
                     )}
                 </ul>
             </section>
+
+            {
+                state.isModalOpen && (
+                    <div className="fixed inset-0 bg-black/50 flex-center z-50">
+                        <div className="bg-white rounded-lg max-w-lg w-full h-[95%] relative">
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <button onClick={closeModal} className="p-2 text-main-primary">Cancelar</button>
+
+                                    <button
+                                        type="submit"
+                                        disabled={state.isSubmitting}
+                                        className="p-2 text-main-highlight rounded hover:bg-main-primary-dark transition"
+                                    >
+                                        {state.isSubmitting ? "Guardando..." : "Agregar"}
+                                    </button>
+                                </div>
+
+                                <div className="px-2">
+                                    <hgroup className="rounded-3xl py-2 px-4 mb-4 bg-main-light">
+                                        <input
+                                            name="title"
+                                            type="text"
+                                            placeholder="Concepto"
+                                            value={state.title}
+                                            onChange={handleChange}
+                                            className="w-full py-2 bg-transparent outline-none border-b border-main-dark/20 text-main-dark placeholder:text-main-dark/50"
+                                            required
+                                        />
+                                        <div className="flex-center pt-2 py-2">
+                                            $
+                                            <input
+                                                name="gasto"
+                                                type="text" // Mantener como texto para manejar el formato
+                                                placeholder="$ $"
+                                                value={state.gasto}
+                                                onChange={handleChange}
+                                                onBlur={handleBlur} // Formato al perder el foco
+                                                className="w-full pl-1 bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
+                                                required
+                                            />
+                                            MXN
+                                        </div>
+                                    </hgroup>
+
+                                    <div className="rounded-3xl p-4 mb-4 bg-main-light">
+                                        <select name="type" value={state.type} onChange={handleChange} className="w-full bg-transparent outline-none">
+                                            <option value="" hidden className="text-main-gray">Pago con</option>
+                                            <option value={"likeU"}>LikeU</option>
+                                            <option value={"AMEX"}>AMEX</option>
+                                            <option value={"cash"}>Efectivo</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="rounded-3xl p-4 mb-4 bg-main-light">
+                                        <select name="category" value={state.category} onChange={handleChange} className="w-full bg-transparent outline-none">
+                                            <option value="" hidden className="text-main-gray">Categorías</option>
+                                            <option value={"feeding"}>Alimentación y Bebidas</option>
+                                            <option value={"transportation"}>Transporte</option>
+                                            <option value={"health"}>Salud y Bienestar</option>
+                                            <option value={"educationJob"}>Gastos de Educación o Trabajo</option>
+                                            <option value={"housing"}>Vivienda</option>
+                                            <option value={"entertainment"}>Entretenimiento y Ocio</option>
+                                            <option value={"personalCare"}>Ropa y Cuidado Personal</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="rounded-3xl p-4 mb-4 bg-main-light">
+                                        <input
+                                            id="date"
+                                            name="date"
+                                            type="date"
+                                            value={state.date}
+                                            onChange={handleChange}
+                                            className="w-full bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
+                                        />
+                                    </div>
+
+                                    <div className="rounded-3xl p-4 mb-4 bg-main-light">
+                                        <input
+                                            name="file"
+                                            type="file"
+                                            onChange={handleChange}
+                                            className="w-full"
+                                            accept="image/*, .pdf"
+                                        />
+                                    </div>
+
+                                    <textarea
+                                        name="remarks"
+                                        placeholder="Observaciones"
+                                        value={state.remarks}
+                                        onChange={handleChange}
+                                        rows="4"
+                                        className="w-full rounded-3xl p-4 mb-4 outline-none bg-main-light"
+                                    />
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
         </div>
     )
 }

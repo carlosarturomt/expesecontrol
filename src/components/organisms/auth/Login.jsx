@@ -52,9 +52,9 @@ const Login = () => {
 			// Iniciar sesión con correo y contraseña en Firebase Authentication
 			await signInWithEmailAndPassword(auth, formValues.email, formValues.password);
 			// Redirigir a la página principal o a otra ruta después de iniciar sesión
-			navigate('/home'); // Cambia '/home' a la ruta deseada
+			navigate('/'); // Cambia '/home' a la ruta deseada
 		} catch (err) {
-			console.error('Error logging in:', err);
+			//console.error('Error logging in:', err);
 			setErrors({ general: err.message });
 		}
 	};

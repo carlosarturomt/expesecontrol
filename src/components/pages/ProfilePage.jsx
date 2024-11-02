@@ -1,22 +1,19 @@
-import { useContext, useEffect, useState } from "react";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { addDoc, collection, doc, getDocs, query, setDoc, where, updateDoc } from "firebase/firestore";
-import { auth, db, storage } from "@services/firebase/config";
+import { useContext, useState } from "react";
+import { doc, updateDoc } from "firebase/firestore";
+import { auth, db } from "@services/firebase/config";
 import useAuthRequired from "@hooks/useAuthRequired";
 import { UserDataContext } from "@context/userDataContext";
 import { Spinner } from "@components/atoms/Spinner";
-import { ICONS } from "@assets/icons";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
+import { ICONS } from "@assets/icons";
 
 export default function ProfilePage() {
     const { isLoading, isAuthenticated } = useAuthRequired("/register", "/profile");
-    const { userAuth, userData, state, setState } = useContext(UserDataContext);
+    const { userAuth, userData } = useContext(UserDataContext);
+    const [newBudget, setNewBudget] = useState(userData?.budget || 0);
 
     const navigate = useNavigate();
-
-    // Estado para el nuevo presupuesto
-    const [newBudget, setNewBudget] = useState(userData?.budget || 0);
 
     const handleLogout = () => {
         signOut(auth)
@@ -30,19 +27,17 @@ export default function ProfilePage() {
             });
     };
 
-    // Función para manejar la actualización del presupuesto
     const handleUpdateBudget = async (e) => {
-        e.preventDefault(); // Prevenir el comportamiento por defecto del formulario
+        e.preventDefault();
 
         if (userData) {
-            const userDocRef = doc(db, "userData", userData.id); // Cambia 'userData' por el nombre de tu colección y 'id' por la clave de usuario
+            const userDocRef = doc(db, "userData", userAuth.username);
 
             try {
                 await updateDoc(userDocRef, {
                     budget: newBudget,
                 });
                 console.log("Budget updated successfully");
-                // Opcional: Actualizar el estado local o realizar alguna otra acción tras la actualización
             } catch (error) {
                 console.error("Error updating budget:", error);
             }
@@ -76,7 +71,7 @@ export default function ProfilePage() {
                             $
                             <input
                                 name="gasto"
-                                type="text" // Mantener como texto para manejar el formato
+                                type="number"
                                 placeholder="$ $"
                                 value={newBudget}
                                 onChange={(e) => setNewBudget(Number(e.target.value))}

@@ -2,10 +2,10 @@ import { useContext, useEffect, useState } from "react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { addDoc, collection, doc, getDocs, query, setDoc, where } from "firebase/firestore";
 import { db, storage } from "@services/firebase/config";
+import { UserDataContext } from "@context/userDataContext";
 import useAuthRequired from "@hooks/useAuthRequired";
 import { Spinner } from "@components/atoms/Spinner";
 import { ICONS } from "@assets/icons";
-import { UserDataContext } from "../../context/userDataContext";
 
 export default function HomePage() {
     const [expandedGastoId, setExpandedGastoId] = useState(null);
@@ -20,6 +20,19 @@ export default function HomePage() {
         const total = state.gastos.reduce((acc, gasto) => acc + (parseFloat(gasto.gasto) || 0), 0);
         setTotalGastos(total);
     }, [state.gastos]);
+
+    useEffect(() => {
+        if (state.isModalOpen) {
+            document.body.style.overflow = "hidden"; // Desactivar scroll
+        } else {
+            document.body.style.overflow = "unset"; // Reactivar scroll
+        }
+
+        return () => {
+            document.body.style.overflow = "unset"; // Asegurarse de que se reactiva al desmontar
+        };
+    }, [state.isModalOpen]);
+
 
     const formatCurrency = (value) => {
         // Eliminar caracteres no numéricos
@@ -329,7 +342,7 @@ export default function HomePage() {
             {
                 state.isModalOpen && (
                     <div className="fixed inset-0 bg-black/50 flex-center z-50">
-                        <div className="bg-white rounded-lg max-w-lg w-full h-[95%] relative">
+                        <div className="bg-white rounded-lg max-w-lg w-full h-[85vh] relative overflow-hidden">
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <button onClick={closeModal} className="p-2 text-main-primary">Cancelar</button>

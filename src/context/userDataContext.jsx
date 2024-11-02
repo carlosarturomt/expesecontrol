@@ -52,7 +52,7 @@ export function UserDataProvider({ children }) {
 	useEffect(() => {
 		const loadUserData = async () => {
 			if (userAuth && userAuth.username) {
-				const docRefData = doc(db, `userData/${userAuth.username}`);
+				const docRefData = doc(db, `userData/${userAuth.username}`); 
 				const dataDetail = await getDoc(docRefData);
 				setUserData(dataDetail.data() || null);
 			}

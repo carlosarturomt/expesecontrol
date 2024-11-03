@@ -14,6 +14,7 @@ export default {
           highlight: '#00A86B',
           warning: '#FFCA28',
           error: '#EF5350',
+          blue: '#7c90bc',
         },
       }
     },

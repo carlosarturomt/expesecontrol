@@ -120,12 +120,12 @@ function LogOutButton() {
 			.then(() => {
 				// Sign-out successful.
 				navigate("/");
-				console.log("Signed out successfully");
+				//console.log("Signed out successfully");
 				window.location.reload();
 			})
 			.catch((error) => {
 				// An error happened.
-				console.log("error");
+				//console.log("error");
 			});
 	};
 
@@ -181,11 +181,10 @@ function FilterButton({ items = [], label }) {
 			</button>
 
 			<ul
-				className={`absolute right-0 m-0 z-[1000] rounded-md p-0 bg-[#162640] shadow-sm shadow-gray-500 ${
-					isOpen
-						? "grid grid-cols-[repeat(auto-fill,minmax(183px,1fr))]"
-						: "hidden"
-				}`}
+				className={`absolute right-0 m-0 z-[1000] rounded-md p-0 bg-[#162640] shadow-sm shadow-gray-500 ${isOpen
+					? "grid grid-cols-[repeat(auto-fill,minmax(183px,1fr))]"
+					: "hidden"
+					}`}
 			>
 				{items.map((item, index) => {
 					return (
@@ -209,5 +208,117 @@ function FilterButton({ items = [], label }) {
 	);
 }
 
+function SwipeableCard({ data, onEdit, onDelete, expandedGastoId, onCardClick }) {
+	const [swipeDistance, setSwipeDistance] = useState(0);
+	const editThreshold = -50;   // Umbral para mostrar "Editar"
+	const deleteThreshold = -150; // Umbral para mostrar "Eliminar"
 
-export { ValidateButton, SimpleButton, LinkButton, ToggleButton, Switcher, LogOutButton, FilterButton };
+	const handleTouchStart = (e) => {
+		e.currentTarget.startX = e.touches[0].clientX;
+	};
+
+	const handleTouchMove = (e) => {
+		const moveX = e.touches[0].clientX - e.currentTarget.startX;
+		const maxSwipe = Math.max(Math.min(moveX, 0), deleteThreshold);
+		setSwipeDistance(maxSwipe);
+	};
+
+	const handleTouchEnd = () => {
+		if (swipeDistance <= deleteThreshold) {
+			onDelete();
+			setSwipeDistance(0);
+		} else if (swipeDistance <= editThreshold) {
+			onEdit();
+			setSwipeDistance(0);
+		} else {
+			setSwipeDistance(0);
+		}
+	};
+
+	return (
+		<div className="relative flex items-center bg-main-dark/5 rounded-3xl overflow-hidden">
+			{/* Contenido de la tarjeta */}
+			<div
+				className="relative w-full transition-transform duration-300 rounded-3xl"
+				style={{
+					transform: `translateX(${swipeDistance}px)`,
+				}}
+				onTouchStart={handleTouchStart}
+				onTouchMove={handleTouchMove}
+				onTouchEnd={handleTouchEnd}
+			>
+				<div className={`flex justify-between items-center p-4 ${swipeDistance == -150 && 'w-11/12'}`}
+					onClick={() => onCardClick(data.id)}>
+					<span className="text-main-dark font-medium">{data.title}</span>
+					<span className="text-main-primary font-semibold">
+						-{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(data.gasto)}
+					</span>
+				</div>
+				{expandedGastoId === data.id && (
+					<div className="px-4 pb-4 text-sm text-main-dark/60">
+						{data.createdAt &&
+							<p className="flex flex-col pb-2 border-b border-main-dark/20">
+								<strong className="font-medium text-main-dark">Fecha</strong>
+								{data.createdAt.toDate().toLocaleDateString()}
+							</p>
+						}
+						{data.remarks &&
+							<p className="flex flex-col py-2 border-b border-main-dark/20">
+								<strong className="font-medium text-main-dark">Notas</strong>
+								{data.remarks}
+							</p>
+						}
+
+						<div className="flex items-center pt-3 gap-2">
+							{data.type && (
+								<p className="w-fit flex flex-col py-1 px-2 rounded-3xl text-main-light bg-main-highlight">
+									{data.type}
+								</p>
+							)}
+							{data.category && (
+								<p className="w-fit flex flex-col py-1 px-2 rounded-3xl text-main-light bg-main-primary">
+									{data.category}
+								</p>
+							)}
+							{data.fileURL && (
+								<NavLink
+									to={data.fileURL}
+									target="_blank"
+									className="w-fit flex flex-col py-1 px-2 rounded-3xl text-main-light bg-main-dark"
+								>
+									ticket
+								</NavLink>
+							)}
+						</div>
+					</div>
+				)}
+			</div>
+
+			{/* Área de Editar */}
+			<div
+				className={`absolute inset-y-0 bg-main-highlight/70 text-white flex items-center justify-center transition-all duration-300 ${swipeDistance == -150 ? 'right-1/4' : 'right-0'}`}
+				style={{
+					width: `${Math.abs(swipeDistance) >= Math.abs(editThreshold) ? "25%" : "0%"}`,
+					opacity: Math.abs(swipeDistance) >= Math.abs(editThreshold) ? 1 : 0,
+				}}
+				onClick={onEdit}
+			>
+				Editar
+			</div>
+
+			{/* Área de Eliminar */}
+			<div
+				className={`absolute inset-y-0 right-0 bg-main-primary/70 text-white flex items-center justify-center transition-all duration-300`}
+				style={{
+					width: `${Math.abs(swipeDistance) >= Math.abs(deleteThreshold) ? "25%" : "0%"}`,
+					opacity: Math.abs(swipeDistance) >= Math.abs(deleteThreshold) ? 1 : 0,
+				}}
+				onClick={onDelete}
+			>
+				Eliminar
+			</div>
+		</div>
+	);
+}
+
+export { ValidateButton, SimpleButton, LinkButton, ToggleButton, Switcher, LogOutButton, FilterButton, SwipeableCard };

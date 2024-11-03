@@ -1,17 +1,60 @@
 import { useContext, useEffect, useState } from "react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { addDoc, collection, doc, getDocs, query, setDoc, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
 import { db, storage } from "@services/firebase/config";
 import { UserDataContext } from "@context/userDataContext";
 import useAuthRequired from "@hooks/useAuthRequired";
 import { Spinner } from "@components/atoms/Spinner";
 import { ICONS } from "@assets/icons";
+import { SwipeableCard } from "../atoms/Button";
 
 export default function HomePage() {
-    const [expandedGastoId, setExpandedGastoId] = useState(null);
     const { isAuthenticated } = useAuthRequired("/register", "/");
     const { userAuth, userData, state, setState } = useContext(UserDataContext);
     const [totalGastos, setTotalGastos] = useState(0);
+    const [items, setItems] = useState(["Tarea 1", "Tarea 2", "Tarea 3"]);
+    const [expandedGastoId, setExpandedGastoId] = useState(null);
+
+    const handleCardClick = (id) => {
+        setExpandedGastoId(expandedGastoId === id ? null : id);
+    };
+
+    const handleEdit = async (year, period, id) => {
+        const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", String(year), period, id);
+        const gastoSnap = await getDoc(gastoRef);
+
+        if (gastoSnap.exists()) {
+            const gastoData = gastoSnap.data();
+
+            setState(prev => ({
+                ...prev,
+                gasto: gastoData.gasto,
+                title: gastoData.title,
+                remarks: gastoData.remarks,
+                category: gastoData.category,
+                isModalOpen: true, // Abre el modal de edición
+                currentGastoId: id, // Guarda el ID del gasto actual
+            }));
+        } else {
+            console.error("No se encontró el gasto para editar.");
+        }
+    };
+
+    const handleDelete = async (year, period, id) => {
+        console.log(year, period, id);
+        const confirmDelete = window.confirm(`¿Estás seguro de que deseas eliminar el gasto con ID: ${id}?`);
+        if (confirmDelete) {
+            try {
+                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", year, period, id);
+                await deleteDoc(gastoRef);
+                console.log(`Gasto con ID: ${id} eliminado.`);
+
+                setItems((prevItems) => prevItems.filter(item => item.id !== id));
+            } catch (error) {
+                console.error("Error al eliminar el gasto: ", error);
+            }
+        }
+    };
 
     const openModal = () => setState(prev => ({ ...prev, isModalOpen: true }));
     const closeModal = () => setState(prev => ({ ...prev, isModalOpen: false }));
@@ -50,14 +93,23 @@ export default function HomePage() {
     };
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        // Solo formatear si el campo es "gasto"
-        const formattedValue = name === "gasto" ? formatCurrency(value) : value;
+        const { name, type, value, files } = e.target;
 
-        setState((prev) => ({
-            ...prev,
-            [name]: formattedValue,
-        }));
+        if (type === "file") {
+            // Si el tipo es "file", asigna el archivo directamente al estado
+            setState((prev) => ({
+                ...prev,
+                [name]: files[0], // Asigna el primer archivo seleccionado
+            }));
+        } else {
+            // Para otros tipos de input (como text)
+            const formattedValue = name === "gasto" ? formatCurrency(value) : value;
+
+            setState((prev) => ({
+                ...prev,
+                [name]: formattedValue,
+            }));
+        }
     };
 
     const handleBlur = (e) => {
@@ -202,6 +254,8 @@ export default function HomePage() {
                 fileURL: fileURL || "",
                 user: userAuth.username,
                 createdAt: date,
+                year: String(year),
+                period: period,
             });
 
             // Resetear el estado después de enviar
@@ -224,10 +278,6 @@ export default function HomePage() {
     };
 
     const cashToUse = ((userData && userData.budget) - (totalGastos))
-
-    const handleCardClick = (id) => {
-        setExpandedGastoId(expandedGastoId === id ? null : id);
-    };
 
     if (state.loading) {
         return <Spinner />;
@@ -272,9 +322,9 @@ export default function HomePage() {
                 </div>
                 <div className="bg-main-dark/5 rounded-3xl p-4 flex justify-between items-center mt-2">
                     <span className="text-main-dark">Gastos Totales</span>
-                    <span className="text-main-dark font-semibold">-${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <span className="text-main-dark font-semibold">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-                <div className={`${totalGastos < 0 ? 'bg-main-primary/40' : 'bg-main-highlight/40'} rounded-3xl p-4 flex justify-between items-center mt-2`}>
+                <div className={`${(userData.budget - totalGastos) < 0 ? 'bg-main-primary/40' : 'bg-main-highlight/40'} rounded-3xl p-4 flex justify-between items-center mt-2`}>
                     <span className="text-main-dark">Saldo Actual</span>
                     <span className={`${totalGastos < 0 ? 'text-main-primary' : 'text-main-dark'} font-semibold`}>{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(userData.budget - totalGastos)}</span>
                 </div>
@@ -295,39 +345,15 @@ export default function HomePage() {
                             {state.gastos
                                 .sort((a, b) => b.createdAt - a.createdAt).slice(0, 6)
                                 .map(gasto => {
-                                    const timestamp = typeof gasto.createdAt === 'number' ? gasto.createdAt : parseInt(gasto.createdAt, 10);
                                     return (
-                                        <li key={gasto.id} className="flex flex-col bg-main-dark/5 rounded-3xl p-4 cursor-pointer" >
-                                            <div
-                                                className="flex justify-between items-center "
-                                                onClick={() => handleCardClick(gasto.id)}
-                                            >
-                                                <span className="text-main-dark font-medium">{gasto.title || 'Gasto desconocido'}</span>
-                                                <span className="text-main-primary font-semibold">
-                                                    -{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(gasto.gasto)}
-                                                </span>
-                                            </div>
-
-                                            {expandedGastoId === gasto.id && (
-                                                <div className="mt-2">
-                                                    <p className="text-main-dark">Detalles del gasto:</p>
-                                                    <p className="text-main-dark">{gasto.category || 'Sin categoria'}</p>
-                                                    <p className="text-main-dark">{gasto.type || 'Sin tipo de gasto'}</p>
-                                                    <p className="text-main-dark">{gasto.remarks || 'Sin observaciones'}</p>
-                                                    <p className="text-main-dark">{gasto.fileURL || 'Sin archivo adjunto'}</p>
-                                                    <p className="text-main-dark">
-                                                        Fecha: {new Date(timestamp).toLocaleString('es-MX', {
-                                                            year: 'numeric',
-                                                            month: 'long',
-                                                            day: 'numeric',
-                                                            hour: '2-digit',
-                                                            minute: '2-digit',
-                                                            hour12: false,
-                                                        })}
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </li>
+                                        <SwipeableCard
+                                            key={gasto.id}
+                                            data={gasto}
+                                            onEdit={() => handleEdit(gasto.year, gasto.period, gasto.id)}
+                                            onDelete={() => handleDelete(gasto.year, gasto.period, gasto.id)}
+                                            expandedGastoId={expandedGastoId}
+                                            onCardClick={handleCardClick}
+                                        />
                                     )
                                 })}
                         </ul>

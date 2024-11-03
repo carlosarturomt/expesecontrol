@@ -20,25 +20,28 @@ export default function HomePage() {
     };
 
     const handleEdit = async (year, period, id) => {
-        const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", String(year), period, id);
+        const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", year, period, id);
         const gastoSnap = await getDoc(gastoRef);
-
         if (gastoSnap.exists()) {
             const gastoData = gastoSnap.data();
 
             setState(prev => ({
                 ...prev,
-                gasto: gastoData.gasto,
-                title: gastoData.title,
-                remarks: gastoData.remarks,
-                category: gastoData.category,
-                isModalOpen: true, // Abre el modal de edición
+                gasto: gastoData.gasto || '',
+                title: gastoData.title || '',
+                remarks: gastoData.remarks || '',
+                category: gastoData.category || '',
+                type: gastoData.type || '', // Asegúrate de incluir el tipo
+                date: gastoData.createdAt ? gastoData.createdAt.toISOString().split("T")[0] : '', // Formato de fecha
+                fileURL: gastoData.fileURL || '', // Guardar la URL del archivo existente
+                isModalOpen: true,
                 currentGastoId: id, // Guarda el ID del gasto actual
             }));
         } else {
             console.error("No se encontró el gasto para editar.");
         }
     };
+
 
     const handleDelete = async (year, period, id) => {
         console.log(year, period, id);
@@ -75,7 +78,6 @@ export default function HomePage() {
             document.body.style.overflow = "unset"; // Asegurarse de que se reactiva al desmontar
         };
     }, [state.isModalOpen]);
-
 
     const formatCurrency = (value) => {
         // Eliminar caracteres no numéricos
@@ -240,23 +242,41 @@ export default function HomePage() {
                 const storageRef = ref(storage, `userFiles/${userAuth.username}/${state.file.name}`);
                 await uploadBytes(storageRef, state.file);
                 fileURL = await getDownloadURL(storageRef);
+            } else if (state.fileURL) {
+                fileURL = state.fileURL; // Mantener el URL existente si no hay nuevo archivo
             }
 
-            // Ruta de Firestore basada en año y periodo
-            const gastosRef = collection(db, "userPosts", userAuth.username, "gastos", String(year), period);
-
-            await addDoc(gastosRef, {
-                gasto: gastoValue,
-                title: state.title,
-                remarks: state.remarks,
-                type: state.type,
-                category: state.category,
-                fileURL: fileURL || "",
-                user: userAuth.username,
-                createdAt: date,
-                year: String(year),
-                period: period,
-            });
+            if (state.currentGastoId) {
+                // Si se está editando, actualiza el documento existente
+                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", year, period, state.currentGastoId);
+                await updateDoc(gastoRef, {
+                    gasto: gastoValue,
+                    title: state.title,
+                    remarks: state.remarks,
+                    type: state.type,
+                    category: state.category,
+                    fileURL: fileURL || "",
+                    user: userAuth.username,
+                    createdAt: date,
+                    year: String(year),
+                    period: period,
+                });
+            } else {
+                // Si es un nuevo gasto, añade uno nuevo
+                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos", String(year), period);
+                await addDoc(gastosRef, {
+                    gasto: gastoValue,
+                    title: state.title,
+                    remarks: state.remarks,
+                    type: state.type,
+                    category: state.category,
+                    fileURL: fileURL || "",
+                    user: userAuth.username,
+                    createdAt: date,
+                    year: String(year),
+                    period: period,
+                });
+            }
 
             // Resetear el estado después de enviar
             setState(prev => ({
@@ -265,9 +285,11 @@ export default function HomePage() {
                 title: "",
                 remarks: "",
                 category: "",
+                type: "",
                 file: null,
                 isModalOpen: false,
                 error: "",
+                currentGastoId: null, // Resetear el ID de gasto actual
             }));
         } catch (error) {
             console.error("Error al subir datos: ", error);
@@ -306,12 +328,12 @@ export default function HomePage() {
                 </button>
             </section>
 
-            <section className="w-full max-w-screen-sm py-3">
+            {/* <section className="w-full max-w-screen-sm py-3">
                 <h2 className="text-dark text-lg font-semibold mb-4">Notificaciones</h2>
                 <div className="bg-main-warning rounded-3xl p-4">
                     <p className="text-dark font-medium">¡Alerta! Has superado tu presupuesto mensual en un 75.05%.</p>
                 </div>
-            </section>
+            </section> */}
 
             <section className="w-full max-w-screen-sm py-3">
                 <h2 className="text-main-dark text-lg font-semibold mb-4">Resumen Mensual</h2>

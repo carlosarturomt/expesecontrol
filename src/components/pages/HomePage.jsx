@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
 import { db, storage } from "@services/firebase/config";
 import { UserDataContext } from "@context/userDataContext";
 import useAuthRequired from "@hooks/useAuthRequired";
@@ -20,28 +20,34 @@ export default function HomePage() {
     };
 
     const handleEdit = async (year, period, id) => {
-        const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", year, period, id);
-        const gastoSnap = await getDoc(gastoRef);
-        if (gastoSnap.exists()) {
-            const gastoData = gastoSnap.data();
+        try {
+            const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", year, period, id);
+            const gastoSnap = await getDoc(gastoRef);
 
-            setState(prev => ({
-                ...prev,
-                gasto: gastoData.gasto || '',
-                title: gastoData.title || '',
-                remarks: gastoData.remarks || '',
-                category: gastoData.category || '',
-                type: gastoData.type || '', // Asegúrate de incluir el tipo
-                date: gastoData.createdAt ? gastoData.createdAt.toISOString().split("T")[0] : '', // Formato de fecha
-                fileURL: gastoData.fileURL || '', // Guardar la URL del archivo existente
-                isModalOpen: true,
-                currentGastoId: id, // Guarda el ID del gasto actual
-            }));
-        } else {
-            console.error("No se encontró el gasto para editar.");
+            if (gastoSnap.exists()) {
+                const gastoData = gastoSnap.data();
+
+                setState((prev) => ({
+                    ...prev,
+                    gasto: gastoData.gasto || '',
+                    title: gastoData.title || '',
+                    remarks: gastoData.remarks || '',
+                    category: gastoData.category || '',
+                    type: gastoData.type || '',
+                    date: gastoData.createdAt
+                        ? gastoData.createdAt.toDate().toISOString().substring(0, 10)  // Formato ISO para <input type="date">
+                        : '',
+                    fileURL: gastoData.fileURL || '',
+                    isModalOpen: true,
+                    currentGastoId: id,  // Guarda el ID del gasto actual
+                }));
+            } else {
+                console.error("No se encontró el gasto para editar.");
+            }
+        } catch (error) {
+            console.error("Error al obtener los datos del gasto:", error);
         }
     };
-
 
     const handleDelete = async (year, period, id) => {
         console.log(year, period, id);
@@ -135,7 +141,7 @@ export default function HomePage() {
         setState(prev => ({ ...prev, isSubmitting: true }));
 
         // Validar el valor del gasto
-        const gastoValue = parseFloat(state.gasto.replace(/[^0-9.-]+/g, ""));
+        const gastoValue = parseFloat((state.gasto || "").toString().replace(/[^0-9.-]+/g, ""));
         if (isNaN(gastoValue) || gastoValue <= 0) {
             setState(prev => ({ ...prev, error: "Por favor, ingresa un gasto válido.", isSubmitting: false }));
             return;
@@ -147,7 +153,8 @@ export default function HomePage() {
         const month = date.getMonth();
         const day = date.getDate();
 
-        let period = "";
+        const yearString = String(year);
+        let period = ""; // Mueve esta línea aquí
 
         // Determinación del periodo
         if (day < 12) {
@@ -236,19 +243,22 @@ export default function HomePage() {
             }
         }
 
+        const periodString = String(period); // Mueve esta línea aquí
+
         try {
             let fileURL = "";
             if (state.file) {
-                const storageRef = ref(storage, `userFiles/${userAuth.username}/${state.file.name}`);
+                // Genera un nombre único para el archivo usando el título del gasto y la fecha actual
+                const timestamp = Date.now();
+                const fileName = `${state.title}_${timestamp}.${state.file.name.split('.').pop()}`;
+                const storageRef = ref(storage, `userFiles/${userAuth.username}/${fileName}`);
+
                 await uploadBytes(storageRef, state.file);
                 fileURL = await getDownloadURL(storageRef);
-            } else if (state.fileURL) {
-                fileURL = state.fileURL; // Mantener el URL existente si no hay nuevo archivo
             }
 
             if (state.currentGastoId) {
-                // Si se está editando, actualiza el documento existente
-                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", year, period, state.currentGastoId);
+                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", yearString, periodString, String(state.currentGastoId));
                 await updateDoc(gastoRef, {
                     gasto: gastoValue,
                     title: state.title,
@@ -258,12 +268,11 @@ export default function HomePage() {
                     fileURL: fileURL || "",
                     user: userAuth.username,
                     createdAt: date,
-                    year: String(year),
-                    period: period,
+                    year: yearString,
+                    period: periodString,
                 });
             } else {
-                // Si es un nuevo gasto, añade uno nuevo
-                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos", String(year), period);
+                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos", yearString, periodString);
                 await addDoc(gastosRef, {
                     gasto: gastoValue,
                     title: state.title,
@@ -273,8 +282,8 @@ export default function HomePage() {
                     fileURL: fileURL || "",
                     user: userAuth.username,
                     createdAt: date,
-                    year: String(year),
-                    period: period,
+                    year: yearString,
+                    period: periodString,
                 });
             }
 
@@ -298,6 +307,7 @@ export default function HomePage() {
             setState(prev => ({ ...prev, isSubmitting: false }));
         }
     };
+
 
     const cashToUse = ((userData && userData.budget) - (totalGastos))
 

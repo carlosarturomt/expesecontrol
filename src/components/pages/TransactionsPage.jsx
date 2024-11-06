@@ -133,7 +133,7 @@ export default function TransactionsPage() {
         }));
     };
 
-    const handleSubmit = async (e) => {
+/*     const handleSubmit = async (e) => {
         e.preventDefault();
         setState(prev => ({ ...prev, isSubmitting: true }));
 
@@ -300,7 +300,181 @@ export default function TransactionsPage() {
         } finally {
             setState(prev => ({ ...prev, isSubmitting: false }));
         }
+    }; */
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setState(prev => ({ ...prev, isSubmitting: true }));
+
+        // Validar el valor del gasto
+        const gastoValue = parseFloat((state.gasto || "").toString().replace(/[^0-9.-]+/g, ""));
+        if (isNaN(gastoValue) || gastoValue <= 0) {
+            setState(prev => ({ ...prev, error: "Por favor, ingresa un gasto válido.", isSubmitting: false }));
+            return;
+        }
+
+        // Ajuste para la fecha
+        const date = state.date ? new Date(state.date + 'T00:00:00') : new Date();
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+
+        // Obtener la fecha de corte del usuario desde su perfil
+        const userCutoffDay = userAuth.cutoffDay || 12; // Valor por defecto al 12 si no está configurado
+
+        const yearString = String(year);
+        let period = ""; // Mueve esta línea aquí
+
+        // Determinación del periodo
+        if (day < userCutoffDay) {
+            // Si el día es menor que el día de corte, consideramos el mes anterior
+            switch (month) {
+                case 0: // Enero
+                    period = "diciembreEnero";
+                    break;
+                case 1: // Febrero
+                    period = "eneroFebrero";
+                    break;
+                case 2: // Marzo
+                    period = "febreroMarzo";
+                    break;
+                case 3: // Abril
+                    period = "marzoAbril";
+                    break;
+                case 4: // Mayo
+                    period = "abrilMayo";
+                    break;
+                case 5: // Junio
+                    period = "mayoJunio";
+                    break;
+                case 6: // Julio
+                    period = "junioJulio";
+                    break;
+                case 7: // Agosto
+                    period = "julioAgosto";
+                    break;
+                case 8: // Septiembre
+                    period = "agostoSeptiembre";
+                    break;
+                case 9: // Octubre
+                    period = "septiembreOctubre";
+                    break;
+                case 10: // Noviembre
+                    period = "octubreNoviembre";
+                    break;
+                case 11: // Diciembre
+                    period = "noviembreDiciembre";
+                    break;
+                default:
+                    period = "desconocido";
+            }
+        } else {
+            // Si el día es igual o mayor que el día de corte, consideramos el mes actual
+            switch (month) {
+                case 0:
+                    period = "eneroFebrero";
+                    break;
+                case 1:
+                    period = "febreroMarzo";
+                    break;
+                case 2:
+                    period = "marzoAbril";
+                    break;
+                case 3:
+                    period = "abrilMayo";
+                    break;
+                case 4:
+                    period = "mayoJunio";
+                    break;
+                case 5:
+                    period = "junioJulio";
+                    break;
+                case 6:
+                    period = "julioAgosto";
+                    break;
+                case 7:
+                    period = "agostoSeptiembre";
+                    break;
+                case 8:
+                    period = "septiembreOctubre";
+                    break;
+                case 9:
+                    period = "octubreNoviembre";
+                    break;
+                case 10:
+                    period = "noviembreDiciembre";
+                    break;
+                case 11:
+                    period = "diciembreEnero";
+                    break;
+                default:
+                    period = "desconocido";
+            }
+        }
+
+        // Continuación del manejo del archivo y la base de datos
+        try {
+            let fileURL = state.fileURL; // Mantén la URL original del archivo si existe
+
+            if (state.file) {  // Si se selecciona un archivo nuevo, sube ese archivo
+                const timestamp = Date.now();
+                const fileName = `${state.title}_${timestamp}.${state.file.name.split('.').pop()}`;
+                const storageRef = ref(storage, `userFiles/${userAuth.username}/${fileName}`);
+
+                await uploadBytes(storageRef, state.file);
+                fileURL = await getDownloadURL(storageRef);
+            }
+
+            if (state.currentGastoId) {
+                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", yearString, period, String(state.currentGastoId));
+                await updateDoc(gastoRef, {
+                    gasto: gastoValue,
+                    title: state.title,
+                    remarks: state.remarks,
+                    type: state.type,
+                    category: state.category,
+                    fileURL: fileURL,  // Usa la URL actualizada o la original
+                    user: userAuth.username,
+                    createdAt: date,
+                    year: yearString,
+                    period: period,
+                });
+            } else {
+                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos", yearString, period);
+                await addDoc(gastosRef, {
+                    gasto: gastoValue,
+                    title: state.title,
+                    remarks: state.remarks,
+                    type: state.type,
+                    category: state.category,
+                    fileURL: fileURL,  // Usa la URL del archivo
+                    user: userAuth.username,
+                    createdAt: date,
+                    year: yearString,
+                    period: period,
+                });
+            }
+
+            setState(prev => ({
+                ...prev,
+                gasto: "",
+                title: "",
+                remarks: "",
+                category: "",
+                type: "",
+                file: null,
+                isModalOpen: false,
+                error: "",
+                currentGastoId: null,
+            }));
+        } catch (error) {
+            console.error("Error al subir datos: ", error);
+            setState(prev => ({ ...prev, error: "Error al subir los datos: " + error.message, isSubmitting: false }));
+        } finally {
+            setState(prev => ({ ...prev, isSubmitting: false }));
+        }
     };
+
 
     if (isLoading) {
         return <Spinner bgTheme={true} />;

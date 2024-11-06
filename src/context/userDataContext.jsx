@@ -54,23 +54,19 @@ export function UserDataProvider({ children }) {
 			if (userAuth && userAuth.username) {
 				const docRefData = doc(db, `userData/${userAuth.username}`);
 				const dataDetail = await getDoc(docRefData);
-				setUserData(dataDetail.data() || null);
+				const data = dataDetail.data() || null;
+				setUserData(data);
+
+				// Verificar si el usuario tiene definido el corte del día (cutoddDay)
+				const cutoddDay = data?.cutoddDay || 12; // Si no está definido, usar 12
+				setState(prevState => ({
+					...prevState,
+					cutoddDay, // Almacenar el corte en el estado
+				}));
 			}
 		};
 
 		loadUserData();
-	}, [userAuth]);
-
-	useEffect(() => {
-		const loadUserFiles = async () => {
-			if (userAuth && userAuth.username) {
-				const docRefFiles = doc(db, `userFiles/${userAuth.username}`);
-				const dataDetail = await getDoc(docRefFiles);
-				setUserFiles(dataDetail.data() || null);
-			}
-		};
-
-		loadUserFiles();
 	}, [userAuth]);
 
 	useEffect(() => {
@@ -79,15 +75,14 @@ export function UserDataProvider({ children }) {
             const year = new Date().getFullYear();
             const month = new Date().getMonth();
 
-            const startDate = new Date(year, month - (day < 12 ? 1 : 0), 12); // Desde el 12 del mes anterior o actual
-            const endDate = new Date(year, month + 1 - (day < 12 ? 0 : 1), 11, 23, 59, 59); // Hasta el 11 del mes siguiente
-
+            const startDate = new Date(year, month - (day < state.cutoddDay ? 1 : 0), state.cutoddDay); // Usar cutoddDay para el corte
+            const endDate = new Date(year, month + 1 - (day < state.cutoddDay ? 0 : 1), state.cutoddDay - 1, 23, 59, 59); // Hasta el día antes del siguiente corte
 
             let period = "";
 
             // Determinación del periodo
-            if (day < 12) {
-                // Si el día es menor a 12, consideramos el mes anterior
+            if (day < state.cutoddDay) {
+                // Si el día es menor al corte, consideramos el mes anterior
                 switch (month) {
                     case 0: // Enero
                         period = "diciembreEnero";
@@ -129,7 +124,7 @@ export function UserDataProvider({ children }) {
                         period = "desconocido";
                 }
             } else {
-                // Si el día es 12 o mayor, consideramos el mes actual
+                // Si el día es igual o mayor al corte, consideramos el mes actual
                 switch (month) {
                     case 0:
                         period = "eneroFebrero";
@@ -190,10 +185,10 @@ export function UserDataProvider({ children }) {
         };
 
         fetchGastos();
-    }, [userAuth]);
+    }, [userAuth, state.cutoddDay]); // Dependencia de cutoddDay
 
 	return (
-		<UserDataContext.Provider value={{ user, userAuth, userData, userFiles, state, setState, loading}}>
+		<UserDataContext.Provider value={{ user, userAuth, userData, userFiles, state, setState, loading }}>
 			{children}
 		</UserDataContext.Provider>
 	);

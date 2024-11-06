@@ -13,6 +13,7 @@ export default function ProfilePage() {
     const { loading, userAuth, userData } = useContext(UserDataContext);
     const [newBudget, setNewBudget] = useState(!loading && userData?.expenseControl.budget || 0);
     const [newCurrency, setNewCurrency] = useState(!loading && userData?.expenseControl.currency || 'MXN');
+    const [newCutoffDay, setNewCutoffDay] = useState(!loading && userData?.expenseControl.cutoffDay || '1');
     const [paymentType, setPaymentType] = useState('');
     const [cardType, setCardType] = useState('');
 
@@ -40,6 +41,7 @@ export default function ProfilePage() {
             const updateData = {
                 "expenseControl.budget": newBudget,
                 "expenseControl.currency": newCurrency,
+                "expenseControl.cutoffDay": newCutoffDay,
                 // Solo actualizamos paymentType si paymentType no es vacío
                 ...(paymentType && cardType ? { [`paymentTypes.${paymentType}`]: cardType } : {}),
             };
@@ -91,7 +93,7 @@ export default function ProfilePage() {
 
             <section className="w-full max-w-screen-sm py-6">
                 <form onSubmit={handleUpdateBudget}>
-                    <hgroup className="relative rounded-3xl py-2 px-4 mb-4 bg-main-dark/5">
+                    <div className="relative rounded-3xl py-2 px-4 mb-4 bg-main-dark/5">
                         <label htmlFor="budget" className="absolute -top-2 text-sm font-medium rounded-full px-1 text-gray-700/50">
                             Presupuesto
                         </label>
@@ -108,7 +110,24 @@ export default function ProfilePage() {
                             />
                             {userData?.expenseControl.currency}
                         </div>
-                    </hgroup>
+                    </div>
+
+                    <div className="relative rounded-3xl py-2 px-4 mb-4 bg-main-dark/5">
+                        <label htmlFor="cutoffDay" className="absolute -top-2 text-sm font-medium rounded-full px-1 text-gray-700/50">
+                            Día de corte
+                        </label>
+                        <div className="flex-center pt-2 py-2">
+                            <input
+                                name="cutoffDay"
+                                type="number"
+                                placeholder="Define el día de corte. Ej: 1"
+                                value={newCutoffDay}
+                                onChange={(e) => setNewCutoffDay(e.target.value)}
+                                className="w-full pl-1 bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
+                                required
+                            />
+                        </div>
+                    </div>
 
                     <div className="relative rounded-3xl p-4 mb-4 bg-main-dark/5">
                         <label htmlFor="currency" className="absolute -top-2 text-sm font-medium rounded-full px-1 text-gray-700/50">
@@ -125,39 +144,6 @@ export default function ProfilePage() {
                             <option value="EUR">EUR</option>
                         </select>
                     </div>
-
-                    {/* <p className="relative rounded-3xl py-2 px-4 mb-4 bg-main-dark/5">
-                        <label htmlFor="paymentTypes" className="absolute -top-2 text-sm font-medium rounded-full px-1 text-gray-700/50">
-                            Tipos de Pago
-                        </label>
-                        <span className="flex-center pt-2 py-2">
-                            <select
-                                name="currency"
-                                className="w-full bg-transparent outline-none"
-                            >
-                                <option value="" disabled selected>Dar de alta</option>
-                                <option value="card1">Tarjeta 1</option>
-                                <option value="card2">Tarjeta 2</option>
-                                <option value="card3">Tarjeta 3</option>
-                                <option value="card4">Tarjeta 4</option>
-                                <option value="card5">Tarjeta 5</option>
-                                <option value="other">Otro tipo de pago</option>
-                            </select>
-
-                            <input
-                                name="gasto"
-                                type="text"
-                                placeholder="Tipo de pago (Ej: likeU, AMEX)"
-                                value={paymentType}  // Vincular el valor al estado
-                                onChange={handleInputChange}  // Manejar el cambio
-                                className="w-full pl-1 bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
-                                required
-                            />
-                        </span>
-                        <span className="text-main-dark/50">
-                            Por defecto ya está habilitado el tipo de pago en efectivo, no es necesario que lo coloques.
-                        </span>
-                    </p> */}
 
                     <div className="relative rounded-3xl py-2 px-4 mb-4 bg-main-dark/5">
                         <label htmlFor="paymentTypes" className="absolute -top-2 text-sm font-medium rounded-full px-1 text-gray-700/50">

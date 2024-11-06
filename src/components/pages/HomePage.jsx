@@ -361,9 +361,9 @@ export default function HomePage() {
         <div>
             {/* Sección de Gastos Totales */}
             <section className="w-full max-w-screen-sm mt-6 py-3 flex flex-col items-center">
-                <p className="text-main-dark/50">Gastos Totales</p>
-                <h1 className="text-4xl font-bold text-main-dark my-2">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h1>
-                <p className={`${!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos < 0 ? 'text-main-primary' : 'text-main-highlight'}`}>
+                <p className="leading-3 text-main-dark/50">Gastos Totales</p>
+                <h1 className="text-4xl font-bold text-main-dark my-1">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h1>
+                <p className={` ${!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos < 0 ? 'text-main-primary' : 'text-main-highlight'}`}>
                     {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos.toFixed(2))}
                 </p>
             </section>
@@ -514,8 +514,8 @@ export default function HomePage() {
                                             {paymentType === 'cash' && 'Efectivo'}
                                         </span>
                                         <span
-                                            className="text-xl font-semibold text-main-highlight leading-4"
-                                            style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}
+                                            className="text-xl font-semibold text-main-dark leading-4"
+                                            //style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}
                                         >
                                             ${paymentValues[index].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </span>

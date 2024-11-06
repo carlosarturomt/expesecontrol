@@ -386,9 +386,8 @@ export default function HomePage() {
             <section className="w-full max-w-screen-sm py-3">
                 <h2 className="text-main-dark text-lg font-semibold mb-4">Resumen Mensual</h2>
 
-                <aside className="w-full flex flex-wrap items-start">
-                    {/* Gráfico de pastel sin leyenda */}
-                    <div className="w-1/2 max-w-[300px] aspect-square mb-4 sm:mb-0 pr-2">
+                <aside className="w-full flex flex-wrap items-start gap-[4%]">
+                    <div className="w-[48%] max-w-[300px] aspect-square mb-4">
                         <div className="bg-main-dark/5 p-4 rounded-3xl h-full flex flex-col items-start">
                             <div className="flex-grow flex-center w-full pr-12">
                                 <Pie
@@ -416,7 +415,7 @@ export default function HomePage() {
                     </div>
 
                     {/* Total por Categoría */}
-                    <div className="w-1/2 max-w-[300px] aspect-square sm:mt-0 pl-2">
+                    <div className="w-[48%] max-w-[300px] aspect-square">
                         <div className="bg-main-dark/5 p-4 rounded-3xl h-full flex items-center">
                             <div className="space-y-1 w-full">
                                 {categoryLabels.map((category, index) => (
@@ -434,9 +433,8 @@ export default function HomePage() {
                     </div>
                 </aside>
 
-                <aside className="w-full flex flex-wrap items-start">
-                    {/* Gráfico de pastel sin leyenda */}
-                    <div className="w-1/2 max-w-[300px] aspect-square mb-4 sm:mb-0 pr-2">
+                {/* <aside className="w-full flex flex-wrap items-start">
+                    <div className="w-[48%] max-w-[300px] aspect-square mb-4 pr-2">
                         <div className="bg-main-dark/5 p-4 rounded-3xl h-full flex flex-col items-start">
                             <div className="flex-grow flex-center w-full pr-12">
                                 <Pie
@@ -487,6 +485,45 @@ export default function HomePage() {
                             </div>
                         </div>
                     </div>
+                </aside> */}
+
+                <aside className="w-full flex flex-wrap items-start gap-[4%]">
+                    {paymentLabels.map((paymentType, index) => (
+                        <div key={paymentType} className="w-[48%] max-w-[300px] mb-4">
+                            <div className="bg-main-dark/5 py-2 px-4 rounded-3xl h-full flex flex-col items-start">
+                                {/* Tarjeta con el total de cada tipo de pago */}
+                                <div className="flex-grow flex-center gap-2 w-full">
+                                    <i className="flex-center w-9 h-9">
+                                        {
+                                            paymentType === 'cash' && ICONS.money.border(paymentChartData.datasets[0].backgroundColor[index]) ||
+                                            paymentType === 'other' && ICONS.bitcoin.border(paymentChartData.datasets[0].backgroundColor[index]) ||
+                                            ICONS.credit_card.border(paymentChartData.datasets[0].backgroundColor[index])
+                                        }
+                                    </i>
+                                    <p className="flex flex-col items-start w-full py-1">
+                                        <span
+                                            className="text-xs font-light capitalize text-main-dark leading-4"
+                                            style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}
+                                        >
+                                            {paymentType === 'card1' && userData.paymentTypes.card1}
+                                            {paymentType === 'card2' && userData.paymentTypes.card2}
+                                            {paymentType === 'card3' && userData.paymentTypes.card3}
+                                            {paymentType === 'card4' && userData.paymentTypes.card4}
+                                            {paymentType === 'card5' && userData.paymentTypes.card5}
+                                            {paymentType === 'other' && userData.paymentTypes.other}
+                                            {paymentType === 'cash' && 'Efectivo'}
+                                        </span>
+                                        <span
+                                            className="text-xl font-semibold text-main-highlight leading-4"
+                                            style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}
+                                        >
+                                            ${paymentValues[index].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </aside>
 
                 <div className="bg-main-dark/5 rounded-3xl p-4 flex justify-between items-center">
@@ -494,13 +531,13 @@ export default function HomePage() {
                     <span className="text-main-dark font-semibold"> {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(!loading && userData && userData.expenseControl && userData.expenseControl.budget)}
                     </span>
                 </div>
-                <div className="bg-main-dark/5 rounded-3xl p-4 flex justify-between items-center mt-2">
+                <div className="bg-main-dark/5 rounded-3xl p-4 flex justify-between items-center mt-4">
                     <span className="text-main-dark">Gastos Totales</span>
                     <span className="text-main-dark font-semibold">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-                <div className={`${(!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos) < 0 ? 'bg-main-dark/20' : 'bg-main-highlight/40'} rounded-3xl p-4 flex justify-between items-center mt-2`}>
+                <div className={`${(!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos) < 0 ? 'bg-main-dark/20' : 'bg-main-dark/5'} bg-main-dark/20 rounded-3xl p-4 flex justify-between items-center mt-4`}>
                     <span className="text-main-dark">Saldo Actual</span>
-                    <span className={`${totalGastos < 0 ? 'text-main-primary' : 'text-main-primary'} font-semibold`}>{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos)}</span>
+                    <span className={`${!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos < 0 ? 'text-main-primary' : 'text-main-highlight'} font-semibold`}>{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos)}</span>
                 </div>
                 {/* <div className="bg-main-primary/20 rounded-3xl p-4 flex justify-between items-center mt-2">
                     <span className="text-main-primary font-semibold">Exceso</span>
@@ -515,7 +552,7 @@ export default function HomePage() {
                     {state.loading ? (
                         <Spinner bgTheme={true} />
                     ) : state.gastos.length > 0 ? (
-                        <ul className="space-y-3">
+                        <ul className="space-y-4">
                             {state.gastos
                                 .sort((a, b) => b.createdAt - a.createdAt).slice(0, 6)
                                 .map(gasto => {

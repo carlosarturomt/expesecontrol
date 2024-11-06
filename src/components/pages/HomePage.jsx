@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db, storage } from "@services/firebase/config";
 import { UserDataContext } from "@context/userDataContext";
 import useAuthRequired from "@hooks/useAuthRequired";
@@ -10,10 +10,26 @@ import { SwipeableCard } from "../atoms/Button";
 
 export default function HomePage() {
     const { isAuthenticated } = useAuthRequired("/register", "/");
-    const { userAuth, userData, state, setState } = useContext(UserDataContext);
+    const { loading, userAuth, userData, state, setState } = useContext(UserDataContext);
     const [totalGastos, setTotalGastos] = useState(0);
-    const [items, setItems] = useState(["Tarea 1", "Tarea 2", "Tarea 3"]);
     const [expandedGastoId, setExpandedGastoId] = useState(null);
+
+    useEffect(() => {
+        const total = state.gastos.reduce((acc, gasto) => acc + (parseFloat(gasto.gasto) || 0), 0);
+        setTotalGastos(total);
+    }, [state.gastos]);
+
+    useEffect(() => {
+        if (state.isModalOpen) {
+            document.body.style.overflow = "hidden"; // Desactivar scroll
+        } else {
+            document.body.style.overflow = "unset"; // Reactivar scroll
+        }
+
+        return () => {
+            document.body.style.overflow = "unset"; // Asegurarse de que se reactiva al desmontar
+        };
+    }, [state.isModalOpen]);
 
     const handleCardClick = (id) => {
         setExpandedGastoId(expandedGastoId === id ? null : id);
@@ -57,8 +73,6 @@ export default function HomePage() {
                 const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", year, period, id);
                 await deleteDoc(gastoRef);
                 console.log(`Gasto con ID: ${id} eliminado.`);
-
-                setItems((prevItems) => prevItems.filter(item => item.id !== id));
             } catch (error) {
                 console.error("Error al eliminar el gasto: ", error);
             }
@@ -67,23 +81,6 @@ export default function HomePage() {
 
     const openModal = () => setState(prev => ({ ...prev, isModalOpen: true }));
     const closeModal = () => setState(prev => ({ ...prev, isModalOpen: false }));
-
-    useEffect(() => {
-        const total = state.gastos.reduce((acc, gasto) => acc + (parseFloat(gasto.gasto) || 0), 0);
-        setTotalGastos(total);
-    }, [state.gastos]);
-
-    useEffect(() => {
-        if (state.isModalOpen) {
-            document.body.style.overflow = "hidden"; // Desactivar scroll
-        } else {
-            document.body.style.overflow = "unset"; // Reactivar scroll
-        }
-
-        return () => {
-            document.body.style.overflow = "unset"; // Asegurarse de que se reactiva al desmontar
-        };
-    }, [state.isModalOpen]);
 
     const formatCurrency = (value) => {
         // Eliminar caracteres no numéricos
@@ -243,12 +240,10 @@ export default function HomePage() {
             }
         }
 
-        const periodString = String(period); // Mueve esta línea aquí
-
         try {
-            let fileURL = "";
-            if (state.file) {
-                // Genera un nombre único para el archivo usando el título del gasto y la fecha actual
+            let fileURL = state.fileURL; // Mantén la URL original del archivo si existe
+
+            if (state.file) {  // Si se selecciona un archivo nuevo, sube ese archivo
                 const timestamp = Date.now();
                 const fileName = `${state.title}_${timestamp}.${state.file.name.split('.').pop()}`;
                 const storageRef = ref(storage, `userFiles/${userAuth.username}/${fileName}`);
@@ -258,36 +253,35 @@ export default function HomePage() {
             }
 
             if (state.currentGastoId) {
-                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", yearString, periodString, String(state.currentGastoId));
+                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", yearString, period, String(state.currentGastoId));
                 await updateDoc(gastoRef, {
                     gasto: gastoValue,
                     title: state.title,
                     remarks: state.remarks,
                     type: state.type,
                     category: state.category,
-                    fileURL: fileURL || "",
+                    fileURL: fileURL,  // Usa la URL actualizada o la original
                     user: userAuth.username,
                     createdAt: date,
                     year: yearString,
-                    period: periodString,
+                    period: period,
                 });
             } else {
-                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos", yearString, periodString);
+                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos", yearString, period);
                 await addDoc(gastosRef, {
                     gasto: gastoValue,
                     title: state.title,
                     remarks: state.remarks,
                     type: state.type,
                     category: state.category,
-                    fileURL: fileURL || "",
+                    fileURL: fileURL,  // Usa la URL del archivo
                     user: userAuth.username,
                     createdAt: date,
                     year: yearString,
-                    period: periodString,
+                    period: period,
                 });
             }
 
-            // Resetear el estado después de enviar
             setState(prev => ({
                 ...prev,
                 gasto: "",
@@ -298,7 +292,7 @@ export default function HomePage() {
                 file: null,
                 isModalOpen: false,
                 error: "",
-                currentGastoId: null, // Resetear el ID de gasto actual
+                currentGastoId: null,
             }));
         } catch (error) {
             console.error("Error al subir datos: ", error);
@@ -307,9 +301,6 @@ export default function HomePage() {
             setState(prev => ({ ...prev, isSubmitting: false }));
         }
     };
-
-
-    const cashToUse = ((userData && userData.budget) - (totalGastos))
 
     if (state.loading) {
         return <Spinner />;
@@ -325,8 +316,8 @@ export default function HomePage() {
             <section className="w-full max-w-screen-sm mt-6 py-3 flex flex-col items-center">
                 <p className="text-main-dark/50">Gastos Totales</p>
                 <h1 className="text-4xl font-bold text-main-dark my-2">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h1>
-                <p className={`${cashToUse < 0 ? 'text-main-primary' : 'text-main-highlight'}`}>
-                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(cashToUse.toFixed(2))}
+                <p className={`${!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos < 0 ? 'text-main-primary' : 'text-main-highlight'}`}>
+                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos.toFixed(2))}
                 </p>
             </section>
 
@@ -349,16 +340,16 @@ export default function HomePage() {
                 <h2 className="text-main-dark text-lg font-semibold mb-4">Resumen Mensual</h2>
                 <div className="bg-main-dark/5 rounded-3xl p-4 flex justify-between items-center">
                     <span className="text-main-dark">Presupuesto</span>
-                    <span className="text-main-dark font-semibold"> {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(userData.budget)}
+                    <span className="text-main-dark font-semibold"> {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(!loading && userData && userData.expenseControl && userData.expenseControl.budget)}
                     </span>
                 </div>
                 <div className="bg-main-dark/5 rounded-3xl p-4 flex justify-between items-center mt-2">
                     <span className="text-main-dark">Gastos Totales</span>
                     <span className="text-main-dark font-semibold">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-                <div className={`${(userData.budget - totalGastos) < 0 ? 'bg-main-primary/40' : 'bg-main-highlight/40'} rounded-3xl p-4 flex justify-between items-center mt-2`}>
+                <div className={`${(!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos) < 0 ? 'bg-main-primary/40' : 'bg-main-highlight/40'} rounded-3xl p-4 flex justify-between items-center mt-2`}>
                     <span className="text-main-dark">Saldo Actual</span>
-                    <span className={`${totalGastos < 0 ? 'text-main-primary' : 'text-main-dark'} font-semibold`}>{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(userData.budget - totalGastos)}</span>
+                    <span className={`${totalGastos < 0 ? 'text-main-primary' : 'text-main-dark'} font-semibold`}>{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos)}</span>
                 </div>
                 {/* <div className="bg-main-primary/20 rounded-3xl p-4 flex justify-between items-center mt-2">
                     <span className="text-main-primary font-semibold">Exceso</span>
@@ -380,6 +371,7 @@ export default function HomePage() {
                                     return (
                                         <SwipeableCard
                                             key={gasto.id}
+                                            context={userData}
                                             data={gasto}
                                             onEdit={() => handleEdit(gasto.year, gasto.period, gasto.id)}
                                             onDelete={() => handleDelete(gasto.year, gasto.period, gasto.id)}
@@ -410,7 +402,7 @@ export default function HomePage() {
                                         disabled={state.isSubmitting}
                                         className="p-2 text-main-highlight rounded hover:bg-main-primary-dark transition"
                                     >
-                                        {state.isSubmitting ? "Guardando..." : "Agregar"}
+                                        {state.isSubmitting ? "Guardando..." : (state.currentGastoId ? "Actualizar" : "Agregar")}
                                     </button>
                                 </div>
 
@@ -437,15 +429,30 @@ export default function HomePage() {
                                                 className="w-full pl-1 bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
                                                 required
                                             />
-                                            MXN
+                                            {!loading && userData?.expenseControl.currency}
                                         </div>
                                     </hgroup>
 
                                     <div className="rounded-3xl p-4 mb-4 bg-main-light">
                                         <select name="type" value={state.type} onChange={handleChange} className="w-full bg-transparent outline-none">
                                             <option value="" hidden className="text-main-gray">Pago con</option>
-                                            <option value={"likeU"}>LikeU</option>
-                                            <option value={"AMEX"}>AMEX</option>
+                                            {userData.paymentTypes.card1 &&
+                                                <option value={"card1"}>{userData.paymentTypes.card1}</option>}
+                                            {userData.paymentTypes.card2 &&
+                                                <option value={"card2"}>{userData.paymentTypes.card2}</option>
+                                            }
+                                            {userData.paymentTypes.card3 &&
+                                                <option value={"card3"}>{userData.paymentTypes.card3}</option>
+                                            }
+                                            {userData.paymentTypes.card4 &&
+                                                <option value={"card4"}>{userData.paymentTypes.card4}</option>
+                                            }
+                                            {userData.paymentTypes.card5 &&
+                                                <option value={"card5"}>{userData.paymentTypes.card5}</option>
+                                            }
+                                            {userData.paymentTypes.other &&
+                                                <option value={"other"}>{userData.paymentTypes.other}</option>
+                                            }
                                             <option value={"cash"}>Efectivo</option>
                                         </select>
                                     </div>
@@ -474,15 +481,17 @@ export default function HomePage() {
                                         />
                                     </div>
 
-                                    <div className="rounded-3xl p-4 mb-4 bg-main-light">
-                                        <input
-                                            name="file"
-                                            type="file"
-                                            onChange={handleChange}
-                                            className="w-full"
-                                            accept="image/*, .pdf"
-                                        />
-                                    </div>
+                                    {!state.currentGastoId &&
+                                        <div className="rounded-3xl p-4 mb-4 bg-main-light">
+                                            <input
+                                                name="file"
+                                                type="file"
+                                                onChange={handleChange}
+                                                className="w-full"
+                                                accept="image/*, .pdf"
+                                            />
+                                        </div>
+                                    }
 
                                     <textarea
                                         name="remarks"

@@ -208,7 +208,7 @@ function FilterButton({ items = [], label }) {
 	);
 }
 
-function SwipeableCard({ data, onEdit, onDelete, expandedGastoId, onCardClick }) {
+function SwipeableCard({ context, data, onEdit, onDelete, expandedGastoId, onCardClick }) {
 	const [swipeDistance, setSwipeDistance] = useState(0);
 	const editThreshold = -50;   // Umbral para mostrar "Editar"
 	const deleteThreshold = -150; // Umbral para mostrar "Eliminar"
@@ -269,23 +269,54 @@ function SwipeableCard({ data, onEdit, onDelete, expandedGastoId, onCardClick })
 							</p>
 						}
 
-						<div className="flex items-center pt-3 gap-2">
+						<div className="flex items-center pt-3 gap-2 flex-wrap">
 							{data.type && (
 								<p className="w-fit flex flex-col py-1 px-2 rounded-3xl text-main-light bg-main-highlight">
-									{data.type}
+									{
+										data.type.includes("card") && (
+											<span className="flex-center gap-1">
+												<i className="w-4 h-4 flex-center">{ICONS.credit_card.border("#F5F6FA")}</i>
+												{
+												data.type == "card1" && context.paymentTypes.card1 ||
+												data.type == "card2" && context.paymentTypes.card2 ||
+												data.type == "cash" && "efectivo"
+												}
+											</span>
+										)
+									}
 								</p>
 							)}
 							{data.category && (
 								<p className="w-fit flex flex-col py-1 px-2 rounded-3xl text-main-light bg-main-primary">
-									{data.category}
+									{
+										data.category == "feeding" && (
+											<span className="flex-center gap-1">
+												<i className="w-4 h-4 flex-center">{ICONS.restaurant.fill("#F5F6FA")}</i>
+												Alimentación y Bebidas
+											</span>
+										) ||
+										data.category == "transportation" && (
+											<span className="flex-center gap-1">
+												<i className="w-4 h-4 flex-center">{ICONS.transportation.border("#F5F6FA")}</i>
+												Transporte
+											</span>
+										) ||
+										data.category == "personalCare" && (
+											<span className="flex-center gap-1">
+												<i className="w-4 h-4 flex-center">{ICONS.care.border("#F5F6FA")}</i>
+												Ropa y Cuidado Personal
+											</span>
+										)
+									}
 								</p>
 							)}
 							{data.fileURL && (
 								<NavLink
 									to={data.fileURL}
 									target="_blank"
-									className="w-fit flex flex-col py-1 px-2 rounded-3xl text-main-light bg-main-dark"
+									className="w-fit flex-center gap-1 py-1 px-2 rounded-3xl text-main-light bg-main-dark"
 								>
+									<i className="w-4 h-4 flex-center">{ICONS.ticket.border("#F5F6FA")}</i>
 									ticket
 								</NavLink>
 							)}

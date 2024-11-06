@@ -57,8 +57,6 @@ export default function HomePage() {
                     isModalOpen: true,
                     currentGastoId: id,  // Guarda el ID del gasto actual
                 }));
-
-                setTimeout(() => location.reload(), 1000)
             } else {
                 console.error("No se encontró el gasto para editar.");
             }

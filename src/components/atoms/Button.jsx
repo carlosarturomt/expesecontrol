@@ -282,6 +282,22 @@ function SwipeableCard({ context, data, onEdit, onDelete, expandedGastoId, onCar
 												data.type == "cash" && "efectivo"
 												}
 											</span>
+										)||
+										data.type.includes("cash") && (
+											<span className="flex-center gap-1">
+												<i className="w-4 h-4 flex-center">{ICONS.money.border("#F5F6FA")}</i>
+												{
+													data.type == "cash" && "Efectivo"
+												}
+											</span>
+										)||
+										data.type.includes("other") && (
+											<span className="flex-center gap-1">
+												<i className="w-4 h-4 flex-center">{ICONS.bitcoin.border("#F5F6FA")}</i>
+												{
+													data.type == "other" && "Otro"
+												}
+											</span>
 										)
 									}
 								</p>

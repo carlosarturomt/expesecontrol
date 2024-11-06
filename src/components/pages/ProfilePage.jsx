@@ -36,15 +36,19 @@ export default function ProfilePage() {
         if (userData && userData.expenseControl) {
             const userDocRef = doc(db, "userData", userAuth.username);
 
+            // Construimos un objeto para la actualización
+            const updateData = {
+                "expenseControl.budget": newBudget,
+                "expenseControl.currency": newCurrency,
+                // Solo actualizamos paymentType si paymentType no es vacío
+                ...(paymentType && cardType ? { [`paymentTypes.${paymentType}`]: cardType } : {}),
+            };
+
             try {
-                await updateDoc(userDocRef, {
-                    "expenseControl.budget": newBudget,
-                    "expenseControl.currency": newCurrency,
-                    [`paymentTypes.${paymentType}`]: cardType
-                });
+                await updateDoc(userDocRef, updateData);
                 console.log("Updated successfully");
             } catch (error) {
-                console.error("Error updating budget and currency:", error);
+                console.error("Error updating budget, currency, and paymentTypes:", error);
             }
         } else {
             console.error("userData or expenseControl is not available");

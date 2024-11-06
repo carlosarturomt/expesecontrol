@@ -315,8 +315,8 @@ export default function TransactionsPage() {
             {/* Sección de Gastos Totales */}
             <section className="w-full max-w-screen-sm mt-6 py-3 flex flex-col items-center">
                 <p className="text-main-dark/50">Transacciones</p>
-                <h1 className="text-4xl font-bold text-main-dark my-2">$17,505.00</h1>
-                <p className="text-main-primary">-$7,000.00</p>
+                {/* <h1 className="text-4xl font-bold text-main-dark my-2">$17,505.00</h1>
+                <p className="text-main-primary">-$7,000.00</p> */}
             </section>
 
             <section className="w-full max-w-screen-sm py-6">

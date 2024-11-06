@@ -347,9 +347,9 @@ export default function HomePage() {
                     <span className="text-main-dark">Gastos Totales</span>
                     <span className="text-main-dark font-semibold">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-                <div className={`${(!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos) < 0 ? 'bg-main-primary/40' : 'bg-main-highlight/40'} rounded-3xl p-4 flex justify-between items-center mt-2`}>
+                <div className={`${(!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos) < 0 ? 'bg-main-dark/20' : 'bg-main-highlight/40'} rounded-3xl p-4 flex justify-between items-center mt-2`}>
                     <span className="text-main-dark">Saldo Actual</span>
-                    <span className={`${totalGastos < 0 ? 'text-main-primary' : 'text-main-dark'} font-semibold`}>{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos)}</span>
+                    <span className={`${totalGastos < 0 ? 'text-main-primary' : 'text-main-primary'} font-semibold`}>{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos)}</span>
                 </div>
                 {/* <div className="bg-main-primary/20 rounded-3xl p-4 flex justify-between items-center mt-2">
                     <span className="text-main-primary font-semibold">Exceso</span>

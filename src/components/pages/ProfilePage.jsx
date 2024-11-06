@@ -11,7 +11,7 @@ import { ICONS } from "@assets/icons";
 export default function ProfilePage() {
     const { isLoading, isAuthenticated } = useAuthRequired("/register", "/profile");
     const { loading, userAuth, userData } = useContext(UserDataContext);
-    const [newBudget, setNewBudget] = useState(!loading && userData && userData.expenseControl && userData?.expenseControl.budget || 0);
+    const [newBudget, setNewBudget] = useState(!loading && userData && userData.expenseControl && userData?.expenseControl.budget || '');
     const [newCurrency, setNewCurrency] = useState(!loading && userData && userData.expenseControl && userData?.expenseControl.currency || 'MXN');
     const [newCutoffDay, setNewCutoffDay] = useState(!loading && userData && userData.expenseControl && userData?.expenseControl.cutoffDay || '1');
     const [paymentType, setPaymentType] = useState('');
@@ -49,6 +49,7 @@ export default function ProfilePage() {
             try {
                 await updateDoc(userDocRef, updateData);
                 console.log("Updated successfully");
+                setTimeout(() => location.reload(), 1000)
             } catch (error) {
                 console.error("Error updating budget, currency, and paymentTypes:", error);
             }
@@ -198,7 +199,8 @@ export default function ProfilePage() {
 
                     <button type="submit" className="border rounded-3xl p-4 font-semibold text-main-dark hover:bg-main-highlight/10">Actualizar</button>
                 </form>
-                <button onClick={handleLogout} className="border rounded-3xl p-4  mt-4 font-semibold text-main-dark hover:bg-main-highlight/10">Cerrar Sesión</button>
+
+                <button onClick={handleLogout} className="border rounded-3xl p-4 mt-4 mb-12 font-semibold text-main-dark hover:bg-main-highlight/10">Cerrar Sesión</button>
             </section>
         </div>
     );

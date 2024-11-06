@@ -602,7 +602,7 @@ export default function HomePage() {
                                                 className="w-full pl-1 bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
                                                 required
                                             />
-                                            {!loading && userData?.expenseControl.currency}
+                                            {!loading && userData && userData.expenseControl && userData?.expenseControl.currency}
                                         </div>
                                     </hgroup>
 

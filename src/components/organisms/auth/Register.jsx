@@ -124,6 +124,14 @@ const Register = () => {
 						nearestAirport: '',
 					},
 				},
+				expenseControl: {
+					budget: '',
+					currency: '',
+					cutoffDay: '',
+				},
+				paymentTypes: {
+					cash: 'cash',
+				},
 				uid: user.uid,
 				registrationDate: new Date().toISOString(),
 			});

@@ -6,7 +6,18 @@ import { UserDataContext } from "@context/userDataContext";
 import useAuthRequired from "@hooks/useAuthRequired";
 import { Spinner } from "@components/atoms/Spinner";
 import { ICONS } from "@assets/icons";
-import { SwipeableCard } from "../atoms/Button";
+import { SwipeableCard } from "@components/atoms/Button";
+
+import { Pie } from 'react-chartjs-2';
+import {
+    Chart as ChartJS,
+    ArcElement,
+    Tooltip,
+    Legend,
+} from 'chart.js';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
+
 
 export default function HomePage() {
     const { isAuthenticated } = useAuthRequired("/register", "/");
@@ -134,348 +145,6 @@ export default function HomePage() {
         }));
     };
 
-    /* const handleSubmit = async (e) => {
-        e.preventDefault();
-        setState(prev => ({ ...prev, isSubmitting: true }));
-
-        // Validar el valor del gasto
-        const gastoValue = parseFloat((state.gasto || "").toString().replace(/[^0-9.-]+/g, ""));
-        if (isNaN(gastoValue) || gastoValue <= 0) {
-            setState(prev => ({ ...prev, error: "Por favor, ingresa un gasto válido.", isSubmitting: false }));
-            return;
-        }
-
-        // Ajuste para la fecha
-        const date = state.date ? new Date(state.date + 'T00:00:00') : new Date();
-        const year = date.getFullYear();
-        const month = date.getMonth();
-        const day = date.getDate();
-
-        const yearString = String(year);
-        let period = ""; // Mueve esta línea aquí
-
-        // Determinación del periodo
-        if (day < 12) {
-            // Si el día es menor a 12, consideramos el mes anterior
-            switch (month) {
-                case 0: // Enero
-                    period = "diciembreEnero";
-                    break;
-                case 1: // Febrero
-                    period = "eneroFebrero";
-                    break;
-                case 2: // Marzo
-                    period = "febreroMarzo";
-                    break;
-                case 3: // Abril
-                    period = "marzoAbril";
-                    break;
-                case 4: // Mayo
-                    period = "abrilMayo";
-                    break;
-                case 5: // Junio
-                    period = "mayoJunio";
-                    break;
-                case 6: // Julio
-                    period = "junioJulio";
-                    break;
-                case 7: // Agosto
-                    period = "julioAgosto";
-                    break;
-                case 8: // Septiembre
-                    period = "agostoSeptiembre";
-                    break;
-                case 9: // Octubre
-                    period = "septiembreOctubre";
-                    break;
-                case 10: // Noviembre
-                    period = "octubreNoviembre";
-                    break;
-                case 11: // Diciembre
-                    period = "noviembreDiciembre";
-                    break;
-                default:
-                    period = "desconocido";
-            }
-        } else {
-            // Si el día es 12 o mayor, consideramos el mes actual
-            switch (month) {
-                case 0:
-                    period = "eneroFebrero";
-                    break;
-                case 1:
-                    period = "febreroMarzo";
-                    break;
-                case 2:
-                    period = "marzoAbril";
-                    break;
-                case 3:
-                    period = "abrilMayo";
-                    break;
-                case 4:
-                    period = "mayoJunio";
-                    break;
-                case 5:
-                    period = "junioJulio";
-                    break;
-                case 6:
-                    period = "julioAgosto";
-                    break;
-                case 7:
-                    period = "agostoSeptiembre";
-                    break;
-                case 8:
-                    period = "septiembreOctubre";
-                    break;
-                case 9:
-                    period = "octubreNoviembre";
-                    break;
-                case 10:
-                    period = "noviembreDiciembre";
-                    break;
-                case 11:
-                    period = "diciembreEnero";
-                    break;
-                default:
-                    period = "desconocido";
-            }
-        }
-
-        try {
-            let fileURL = state.fileURL; // Mantén la URL original del archivo si existe
-
-            if (state.file) {  // Si se selecciona un archivo nuevo, sube ese archivo
-                const timestamp = Date.now();
-                const fileName = `${state.title}_${timestamp}.${state.file.name.split('.').pop()}`;
-                const storageRef = ref(storage, `userFiles/${userAuth.username}/${fileName}`);
-
-                await uploadBytes(storageRef, state.file);
-                fileURL = await getDownloadURL(storageRef);
-            }
-
-            if (state.currentGastoId) {
-                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", yearString, period, String(state.currentGastoId));
-                await updateDoc(gastoRef, {
-                    gasto: gastoValue,
-                    title: state.title,
-                    remarks: state.remarks,
-                    type: state.type,
-                    category: state.category,
-                    fileURL: fileURL,  // Usa la URL actualizada o la original
-                    user: userAuth.username,
-                    createdAt: date,
-                    year: yearString,
-                    period: period,
-                });
-            } else {
-                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos", yearString, period);
-                await addDoc(gastosRef, {
-                    gasto: gastoValue,
-                    title: state.title,
-                    remarks: state.remarks,
-                    type: state.type,
-                    category: state.category,
-                    fileURL: fileURL,  // Usa la URL del archivo
-                    user: userAuth.username,
-                    createdAt: date,
-                    year: yearString,
-                    period: period,
-                });
-            }
-
-            setState(prev => ({
-                ...prev,
-                gasto: "",
-                title: "",
-                remarks: "",
-                category: "",
-                type: "",
-                file: null,
-                isModalOpen: false,
-                error: "",
-                currentGastoId: null,
-            }));
-        } catch (error) {
-            console.error("Error al subir datos: ", error);
-            setState(prev => ({ ...prev, error: "Error al subir los datos: " + error.message, isSubmitting: false }));
-        } finally {
-            setState(prev => ({ ...prev, isSubmitting: false }));
-        }
-    }; */
-
-    /* const handleSubmit = async (e) => {
-        e.preventDefault();
-        setState(prev => ({ ...prev, isSubmitting: true }));
-
-        // Validar el valor del gasto
-        const gastoValue = parseFloat((state.gasto || "").toString().replace(/[^0-9.-]+/g, ""));
-        if (isNaN(gastoValue) || gastoValue <= 0) {
-            setState(prev => ({ ...prev, error: "Por favor, ingresa un gasto válido.", isSubmitting: false }));
-            return;
-        }
-
-        // Ajuste para la fecha
-        const date = state.date ? new Date(state.date + 'T00:00:00') : new Date();
-        const year = date.getFullYear();
-        const month = date.getMonth();
-        const day = date.getDate();
-
-        // Obtener la fecha de corte del usuario desde su perfil
-        const userCutoffDay = userData?.expenseControl.cutoffDay || 1; // Valor por defecto al 1 si no está configurado
-
-        const yearString = String(year);
-        let period = ""; // Mueve esta línea aquí
-
-        // Determinación del periodo
-        if (day < userCutoffDay) {
-            // Si el día es menor que el día de corte, consideramos el mes anterior
-            switch (month) {
-                case 0: // Enero
-                    period = "diciembreEnero";
-                    break;
-                case 1: // Febrero
-                    period = "eneroFebrero";
-                    break;
-                case 2: // Marzo
-                    period = "febreroMarzo";
-                    break;
-                case 3: // Abril
-                    period = "marzoAbril";
-                    break;
-                case 4: // Mayo
-                    period = "abrilMayo";
-                    break;
-                case 5: // Junio
-                    period = "mayoJunio";
-                    break;
-                case 6: // Julio
-                    period = "junioJulio";
-                    break;
-                case 7: // Agosto
-                    period = "julioAgosto";
-                    break;
-                case 8: // Septiembre
-                    period = "agostoSeptiembre";
-                    break;
-                case 9: // Octubre
-                    period = "septiembreOctubre";
-                    break;
-                case 10: // Noviembre
-                    period = "octubreNoviembre";
-                    break;
-                case 11: // Diciembre
-                    period = "noviembreDiciembre";
-                    break;
-                default:
-                    period = "desconocido";
-            }
-        } else {
-            // Si el día es igual o mayor que el día de corte, consideramos el mes actual
-            switch (month) {
-                case 0:
-                    period = "eneroFebrero";
-                    break;
-                case 1:
-                    period = "febreroMarzo";
-                    break;
-                case 2:
-                    period = "marzoAbril";
-                    break;
-                case 3:
-                    period = "abrilMayo";
-                    break;
-                case 4:
-                    period = "mayoJunio";
-                    break;
-                case 5:
-                    period = "junioJulio";
-                    break;
-                case 6:
-                    period = "julioAgosto";
-                    break;
-                case 7:
-                    period = "agostoSeptiembre";
-                    break;
-                case 8:
-                    period = "septiembreOctubre";
-                    break;
-                case 9:
-                    period = "octubreNoviembre";
-                    break;
-                case 10:
-                    period = "noviembreDiciembre";
-                    break;
-                case 11:
-                    period = "diciembreEnero";
-                    break;
-                default:
-                    period = "desconocido";
-            }
-        }
-
-        // Continuación del manejo del archivo y la base de datos
-        try {
-            let fileURL = state.fileURL; // Mantén la URL original del archivo si existe
-
-            if (state.file) {  // Si se selecciona un archivo nuevo, sube ese archivo
-                const timestamp = Date.now();
-                const fileName = `${state.title}_${timestamp}.${state.file.name.split('.').pop()}`;
-                const storageRef = ref(storage, `userFiles/${userAuth.username}/${fileName}`);
-
-                await uploadBytes(storageRef, state.file);
-                fileURL = await getDownloadURL(storageRef);
-            }
-
-            if (state.currentGastoId) {
-                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", yearString, period, String(state.currentGastoId));
-                await updateDoc(gastoRef, {
-                    gasto: gastoValue,
-                    title: state.title,
-                    remarks: state.remarks,
-                    type: state.type,
-                    category: state.category,
-                    fileURL: fileURL,  // Usa la URL actualizada o la original
-                    user: userAuth.username,
-                    createdAt: date,
-                    year: yearString,
-                    period: period,
-                });
-            } else {
-                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos", yearString, period);
-                await addDoc(gastosRef, {
-                    gasto: gastoValue,
-                    title: state.title,
-                    remarks: state.remarks,
-                    type: state.type,
-                    category: state.category,
-                    fileURL: fileURL,  // Usa la URL del archivo
-                    user: userAuth.username,
-                    createdAt: date,
-                    year: yearString,
-                    period: period,
-                });
-            }
-
-            setState(prev => ({
-                ...prev,
-                gasto: "",
-                title: "",
-                remarks: "",
-                category: "",
-                type: "",
-                file: null,
-                isModalOpen: false,
-                error: "",
-                currentGastoId: null,
-            }));
-        } catch (error) {
-            console.error("Error al subir datos: ", error);
-            setState(prev => ({ ...prev, error: "Error al subir los datos: " + error.message, isSubmitting: false }));
-        } finally {
-            setState(prev => ({ ...prev, isSubmitting: false }));
-        }
-    }; */
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         setState(prev => ({ ...prev, isSubmitting: true }));
@@ -596,6 +265,89 @@ export default function HomePage() {
         }
     };
 
+    /* useEffect(() => {
+        const total = state.gastos.reduce((acc, gasto) => acc + (parseFloat(gasto.gasto) || 0), 0);
+        setTotalGastos(total);
+    }, [state.gastos]);
+
+    const groupedData = state.gastos.reduce((acc, item) => {
+        if (!acc[item.category]) {
+            acc[item.category] = 0;
+        }
+        acc[item.category] += item.gasto;
+        return acc;
+    }, {});
+
+    // Extraer las categorías (labels) y los valores (data)
+    const labels = Object.keys(groupedData);
+    const values = Object.values(groupedData);
+
+    // Preparar los datos para el gráfico de pastel
+    const chartData = {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Gastos por Categoría',
+                data: values,
+                backgroundColor: ['#C2185B', '#00A86B', '#FFCA28', '#EF5350', '#7c90bc'], // Colores personalizados para cada porción
+                borderColor: '#fff',
+                borderWidth: 1,
+            }
+        ],
+    }; */
+    // Agrupar por categoría
+    const groupedByCategory = state.gastos.reduce((acc, item) => {
+        if (!acc[item.category]) {
+            acc[item.category] = 0;
+        }
+        acc[item.category] += parseFloat(item.gasto) || 0;
+        return acc;
+    }, {});
+
+    // Agrupar por tipo de pago
+    const groupedByPaymentType = state.gastos.reduce((acc, item) => {
+        if (!acc[item.type]) {
+            acc[item.type] = 0;
+        }
+        acc[item.type] += parseFloat(item.gasto) || 0;
+        return acc;
+    }, {});
+
+    // Extraer las categorías y los valores para cada gráfico
+    const categoryLabels = Object.keys(groupedByCategory);
+    const categoryValues = Object.values(groupedByCategory);
+
+    // Extraer los tipos de pago y los valores para cada gráfico
+    const paymentLabels = Object.keys(groupedByPaymentType);
+    const paymentValues = Object.values(groupedByPaymentType);
+
+    // Preparar los datos para los gráficos de pastel
+    const categoryChartData = {
+        labels: categoryLabels,
+        datasets: [
+            {
+                label: 'Gastos por Categoría',
+                data: categoryValues,
+                backgroundColor: ['#C2185B', '#00A86B', '#FFCA28', '#EF5350', '#7c90bc'],
+                borderColor: '#fff',
+                borderWidth: 1,
+            }
+        ],
+    };
+
+    const paymentChartData = {
+        labels: paymentLabels,
+        datasets: [
+            {
+                label: 'Gastos por Tipo de Pago',
+                data: paymentValues,
+                backgroundColor: ['#C2185B', '#00A86B', '#FFCA28', '#EF5350', '#7c90bc'],
+                borderColor: '#fff',
+                borderWidth: 1,
+            }
+        ],
+    };
+
 
     if (state.loading) {
         return <Spinner />;
@@ -633,6 +385,110 @@ export default function HomePage() {
 
             <section className="w-full max-w-screen-sm py-3">
                 <h2 className="text-main-dark text-lg font-semibold mb-4">Resumen Mensual</h2>
+
+                <aside className="w-full flex flex-wrap items-start">
+                    {/* Gráfico de pastel sin leyenda */}
+                    <div className="w-1/2 max-w-[300px] aspect-square mb-4 sm:mb-0 pr-2">
+                        <div className="bg-main-dark/5 p-4 rounded-3xl h-full flex flex-col items-start">
+                            <div className="flex-grow flex-center w-full pr-12">
+                                <Pie
+                                    data={categoryChartData}
+                                    options={{
+                                        plugins: {
+                                            tooltip: {
+                                                callbacks: {
+                                                    label: (tooltipItem) => {
+                                                        return `${categoryLabels[tooltipItem.dataIndex]}: $${categoryValues[tooltipItem.dataIndex].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                                    }
+                                                }
+                                            },
+                                            legend: {
+                                                display: false,
+                                            }
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <p className="text-main-dark text-center sm:text-left flex flex-col items-start font-light uppercase text-xs mt-2">
+                                Gastos por<span className="font-semibold text-base text-main-primary">Categoría</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Total por Categoría */}
+                    <div className="w-1/2 max-w-[300px] aspect-square sm:mt-0 pl-2">
+                        <div className="bg-main-dark/5 p-4 rounded-3xl h-full flex items-center">
+                            <div className="space-y-1 w-full">
+                                {categoryLabels.map((category, index) => (
+                                    <div key={category} className="flex justify-between items-center border-b border-main-dark/20">
+                                        <span className="text-xs font-light capitalize text-main-dark" style={{ color: categoryChartData.datasets[0].backgroundColor[index] }}>
+                                            {category}
+                                        </span>
+                                        <span className="text-sm text-main-highlight" style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}>
+                                            ${categoryValues[index].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <aside className="w-full flex flex-wrap items-start">
+                    {/* Gráfico de pastel sin leyenda */}
+                    <div className="w-1/2 max-w-[300px] aspect-square mb-4 sm:mb-0 pr-2">
+                        <div className="bg-main-dark/5 p-4 rounded-3xl h-full flex flex-col items-start">
+                            <div className="flex-grow flex-center w-full pr-12">
+                                <Pie
+                                    data={paymentChartData}
+                                    options={{
+                                        plugins: {
+                                            tooltip: {
+                                                callbacks: {
+                                                    label: (tooltipItem) => {
+                                                        return `${paymentLabels[tooltipItem.dataIndex]}: $${paymentValues[tooltipItem.dataIndex].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                                    }
+                                                }
+                                            },
+                                            legend: {
+                                                display: false,
+                                            }
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <p className="text-main-dark text-center sm:text-left flex flex-col items-start font-light uppercase text-xs mt-2">
+                                Gastos por <span className="font-semibold text-base text-main-highlight">Tipo de pago</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="w-1/2 max-w-[300px] aspect-square sm:mt-0 pl-2">
+                        <div className="bg-main-dark/5 p-4 rounded-3xl h-full flex items-center">
+                            <div className="space-y-1 w-full">
+                                {paymentLabels.map((paymentType, index) => (
+                                    <div key={paymentType} className="flex justify-between items-center border-b border-main-dark/20">
+                                        <span className="text-xs font-light capitalize text-main-dark" style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}>
+                                            {
+                                            paymentType == 'card1'  && userData.paymentTypes.card1 ||
+                                            paymentType == 'card2'  && userData.paymentTypes.card2 ||
+                                            paymentType == 'card3'  && userData.paymentTypes.card3 ||
+                                            paymentType == 'card4'  && userData.paymentTypes.card4 ||
+                                            paymentType == 'card5'  && userData.paymentTypes.card5 ||
+                                            paymentType == 'other'  && userData.paymentTypes.other ||
+                                            paymentType == 'cash'  && 'Efectivo'
+                                            }
+                                        </span>
+                                        <span className="text-sm text-main-highlight" style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}>
+                                            ${paymentValues[index].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
                 <div className="bg-main-dark/5 rounded-3xl p-4 flex justify-between items-center">
                     <span className="text-main-dark">Presupuesto</span>
                     <span className="text-main-dark font-semibold"> {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(!loading && userData && userData.expenseControl && userData.expenseControl.budget)}

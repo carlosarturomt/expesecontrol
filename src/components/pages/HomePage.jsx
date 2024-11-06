@@ -57,6 +57,8 @@ export default function HomePage() {
                     isModalOpen: true,
                     currentGastoId: id,  // Guarda el ID del gasto actual
                 }));
+
+                setTimeout(() => location.reload(), 1000)
             } else {
                 console.error("No se encontró el gasto para editar.");
             }
@@ -73,6 +75,7 @@ export default function HomePage() {
                 const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", year, period, id);
                 await deleteDoc(gastoRef);
                 console.log(`Gasto con ID: ${id} eliminado.`);
+                setTimeout(() => location.reload(), 1000)
             } catch (error) {
                 console.error("Error al eliminar el gasto: ", error);
             }
@@ -302,7 +305,7 @@ export default function HomePage() {
         }
     }; */
 
-    const handleSubmit = async (e) => {
+    /* const handleSubmit = async (e) => {
         e.preventDefault();
         setState(prev => ({ ...prev, isSubmitting: true }));
 
@@ -473,7 +476,128 @@ export default function HomePage() {
         } finally {
             setState(prev => ({ ...prev, isSubmitting: false }));
         }
+    }; */
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setState(prev => ({ ...prev, isSubmitting: true }));
+
+        // Validar el valor del gasto
+        const gastoValue = parseFloat((state.gasto || "").toString().replace(/[^0-9.-]+/g, ""));
+        if (isNaN(gastoValue) || gastoValue <= 0) {
+            setState(prev => ({ ...prev, error: "Por favor, ingresa un gasto válido.", isSubmitting: false }));
+            return;
+        }
+
+        // Ajuste para la fecha
+        const date = state.date ? new Date(state.date + 'T00:00:00') : new Date();
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+
+        // Obtener la fecha de corte del usuario desde su perfil
+        const userCutoffDay = userData?.expenseControl.cutoffDay || 1; // Valor por defecto al 1 si no está configurado
+
+        const yearString = String(year);
+        let period = "";
+
+        // Determinación del periodo
+        if (day < userCutoffDay) {
+            switch (month) {
+                case 0: period = "diciembreEnero"; break;
+                case 1: period = "eneroFebrero"; break;
+                case 2: period = "febreroMarzo"; break;
+                case 3: period = "marzoAbril"; break;
+                case 4: period = "abrilMayo"; break;
+                case 5: period = "mayoJunio"; break;
+                case 6: period = "junioJulio"; break;
+                case 7: period = "julioAgosto"; break;
+                case 8: period = "agostoSeptiembre"; break;
+                case 9: period = "septiembreOctubre"; break;
+                case 10: period = "octubreNoviembre"; break;
+                case 11: period = "noviembreDiciembre"; break;
+                default: period = "desconocido";
+            }
+        } else {
+            switch (month) {
+                case 0: period = "eneroFebrero"; break;
+                case 1: period = "febreroMarzo"; break;
+                case 2: period = "marzoAbril"; break;
+                case 3: period = "abrilMayo"; break;
+                case 4: period = "mayoJunio"; break;
+                case 5: period = "junioJulio"; break;
+                case 6: period = "julioAgosto"; break;
+                case 7: period = "agostoSeptiembre"; break;
+                case 8: period = "septiembreOctubre"; break;
+                case 9: period = "octubreNoviembre"; break;
+                case 10: period = "noviembreDiciembre"; break;
+                case 11: period = "diciembreEnero"; break;
+                default: period = "desconocido";
+            }
+        }
+
+        try {
+            let fileURL = state.fileURL; // Mantén la URL original del archivo si existe
+
+            // Solo sube el archivo si el usuario ha seleccionado uno
+            if (state.file) {
+                const timestamp = Date.now();
+                const fileName = `${state.title}_${timestamp}.${state.file.name.split('.').pop()}`;
+                const storageRef = ref(storage, `userFiles/${userAuth.username}/${fileName}`);
+
+                await uploadBytes(storageRef, state.file);
+                fileURL = await getDownloadURL(storageRef);
+            }
+
+            // Prepara el objeto de datos a guardar
+            const dataToSave = {
+                gasto: gastoValue,
+                title: state.title,
+                remarks: state.remarks,
+                type: state.type,
+                category: state.category,
+                user: userAuth.username,
+                createdAt: date,
+                year: yearString,
+                period: period,
+            };
+
+            // Solo incluir fileURL si se obtuvo una URL válida
+            if (fileURL) {
+                dataToSave.fileURL = fileURL;
+            }
+
+            if (state.currentGastoId) {
+                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", yearString, period, String(state.currentGastoId));
+                await updateDoc(gastoRef, dataToSave);
+            } else {
+                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos", yearString, period);
+                await addDoc(gastosRef, dataToSave);
+            }
+
+            // Limpiar el estado después de la operación
+            setState(prev => ({
+                ...prev,
+                gasto: "",
+                title: "",
+                remarks: "",
+                category: "",
+                type: "",
+                file: null,
+                isModalOpen: false,
+                error: "",
+                currentGastoId: null,
+            }));
+
+            setTimeout(() => location.reload(), 1000)
+        } catch (error) {
+            console.error("Error al subir datos: ", error);
+            setState(prev => ({ ...prev, error: "Error al subir los datos: " + error.message, isSubmitting: false }));
+        } finally {
+            setState(prev => ({ ...prev, isSubmitting: false }));
+        }
     };
+
 
     if (state.loading) {
         return <Spinner />;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from "@services/firebase/config";
 import { InputField } from "@components/atoms/Input";
@@ -91,6 +91,9 @@ const Login = () => {
 					onClick={submitHandler}
 				/>
 			</div>
+
+			<NavLink to={"/register"} className={"text-sm text-main-dark hover:underline"}>Quiero registrarme</NavLink>
+
 		</form>
 	);
 };

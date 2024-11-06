@@ -11,9 +11,9 @@ import { ICONS } from "@assets/icons";
 export default function ProfilePage() {
     const { isLoading, isAuthenticated } = useAuthRequired("/register", "/profile");
     const { loading, userAuth, userData } = useContext(UserDataContext);
-    const [newBudget, setNewBudget] = useState(!loading && userData?.expenseControl.budget || 0);
-    const [newCurrency, setNewCurrency] = useState(!loading && userData?.expenseControl.currency || 'MXN');
-    const [newCutoffDay, setNewCutoffDay] = useState(!loading && userData?.expenseControl.cutoffDay || '1');
+    const [newBudget, setNewBudget] = useState(!loading && userData && userData.expenseControl && userData?.expenseControl.budget || 0);
+    const [newCurrency, setNewCurrency] = useState(!loading && userData && userData.expenseControl && userData?.expenseControl.currency || 'MXN');
+    const [newCutoffDay, setNewCutoffDay] = useState(!loading && userData && userData.expenseControl && userData?.expenseControl.cutoffDay || '1');
     const [paymentType, setPaymentType] = useState('');
     const [cardType, setCardType] = useState('');
 
@@ -108,7 +108,7 @@ export default function ProfilePage() {
                                 className="w-full pl-1 bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
                                 required
                             />
-                            {userData?.expenseControl.currency}
+                            {!loading && userData && userData.expenseControl && userData?.expenseControl.currency}
                         </div>
                     </div>
 

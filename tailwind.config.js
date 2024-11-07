@@ -15,6 +15,7 @@ export default {
           warning: '#FFCA28',
           error: '#EF5350',
           blue: '#7c90bc',
+          purple: '#580d71',
         },
       }
     },

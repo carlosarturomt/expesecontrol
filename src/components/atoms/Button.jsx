@@ -148,14 +148,14 @@ function FilterButton({ items = [], label }) {
 	return (
 		<div className={"relative inline-block"}>
 			<button
-				className="h-fit py-2 px-4 rounded font-medium text-sm text-center inline-flex items-center ml-2 my-1 text-white bg-main-blue"
+				className={`h-fit p-4 rounded-3xl font-medium text-sm ml-2 my-1 text-main-dark ${!isOpen ? 'opacity-50' : 'opacity-100'} `}
 				aria-haspopup="true"
 				aria-controls={label}
 				onClick={() => setIsOpen(!isOpen)}
 				ref={activatorRef}
 			>
 				{label}
-				{isOpen ? (
+				{/* {isOpen ? (
 					<svg
 						height="24"
 						fill="rgb(255,255,255)"
@@ -177,24 +177,26 @@ function FilterButton({ items = [], label }) {
 						<path d="m0 0h24v24h-24z" fill="none" />
 						<path d="m7.41 8.59 4.59 4.58 4.59-4.58 1.41 1.41-6 6-6-6z" />
 					</svg>
-				)}
+				)} */}
 			</button>
 
 			<ul
-				className={`absolute right-0 m-0 z-[1000] rounded-md p-0 bg-[#162640] shadow-sm shadow-gray-500 ${isOpen
+				className={`absolute top-16 right-2 mt-2 p-4 z-[100] rounded-md bg-[#eaebee] shadow-sm shadow-main-dark/30 ${isOpen
 					? "grid grid-cols-[repeat(auto-fill,minmax(183px,1fr))]"
 					: "hidden"
 					}`}
 			>
+				<li className="pb-2 mb-2 font-semibold border-b border-main-dark/20 text-main-dark">Filtrar por categoría</li>
+
 				{items.map((item, index) => {
 					return (
 						<li
-							className={"list-none last:mb-0"}
+							className={"text-sm"}
 							key={index}
 							onClick={() => setIsOpen(!isOpen)}
 						>
 							<button
-								className="w-full py-1 px-4 text-gray-100 hover:bg-[#ffffff42] ml-0 animate-pulse hover:animate-none"
+								className="text-left w-full py-1 rounded-3xl text-main-dark hover:font-semibold"
 								value={item.anchor}
 								onClick={item.slug}
 							>
@@ -277,12 +279,12 @@ function SwipeableCard({ context, data, onEdit, onDelete, expandedGastoId, onCar
 											<span className="flex-center gap-1">
 												<i className="w-4 h-4 flex-center">{ICONS.credit_card.border("#F5F6FA")}</i>
 												{
-												data.type == "card1" && context.paymentTypes.card1 ||
-												data.type == "card2" && context.paymentTypes.card2 ||
-												data.type == "cash" && "efectivo"
+													data.type == "card1" && context.paymentTypes.card1 ||
+													data.type == "card2" && context.paymentTypes.card2 ||
+													data.type == "cash" && "efectivo"
 												}
 											</span>
-										)||
+										) ||
 										data.type.includes("cash") && (
 											<span className="flex-center gap-1">
 												<i className="w-4 h-4 flex-center">{ICONS.money.border("#F5F6FA")}</i>
@@ -290,7 +292,7 @@ function SwipeableCard({ context, data, onEdit, onDelete, expandedGastoId, onCar
 													data.type == "cash" && "Efectivo"
 												}
 											</span>
-										)||
+										) ||
 										data.type.includes("other") && (
 											<span className="flex-center gap-1">
 												<i className="w-4 h-4 flex-center">{ICONS.bitcoin.border("#F5F6FA")}</i>

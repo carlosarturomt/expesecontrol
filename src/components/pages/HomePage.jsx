@@ -289,7 +289,7 @@ export default function HomePage() {
             {
                 label: 'Gastos por Categoría',
                 data: values,
-                backgroundColor: ['#C2185B', '#00A86B', '#FFCA28', '#EF5350', '#7c90bc'], // Colores personalizados para cada porción
+                backgroundColor: ['#C2185B', '#00A86B', '#580d71', '#EF5350', '#7c90bc'], // Colores personalizados para cada porción
                 borderColor: '#fff',
                 borderWidth: 1,
             }
@@ -328,7 +328,7 @@ export default function HomePage() {
             {
                 label: 'Gastos por Categoría',
                 data: categoryValues,
-                backgroundColor: ['#C2185B', '#00A86B', '#FFCA28', '#EF5350', '#7c90bc'],
+                backgroundColor: ['#C2185B', '#00A86B', '#580d71', '#EF5350', '#7c90bc'],
                 borderColor: '#fff',
                 borderWidth: 1,
             }
@@ -341,13 +341,12 @@ export default function HomePage() {
             {
                 label: 'Gastos por Tipo de Pago',
                 data: paymentValues,
-                backgroundColor: ['#C2185B', '#00A86B', '#FFCA28', '#EF5350', '#7c90bc'],
+                backgroundColor: ['#C2185B', '#00A86B', '#580d71', '#EF5350', '#7c90bc'],
                 borderColor: '#fff',
                 borderWidth: 1,
             }
         ],
     };
-
 
     if (state.loading) {
         return <Spinner />;

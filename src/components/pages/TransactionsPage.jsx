@@ -7,12 +7,15 @@ import { UserDataContext } from "@context/userDataContext";
 import { Spinner } from "@components/atoms/Spinner";
 import { SwipeableCard } from "@components/atoms/Button";
 import { ICONS } from "@assets/icons";
+import { FilterButton } from "../atoms/Button";
 
 export default function TransactionsPage() {
     const { isLoading, isAuthenticated } = useAuthRequired("/register", "/transactions");
     const { loading, userAuth, userData, state, setState } = useContext(UserDataContext);
     const [totalGastos, setTotalGastos] = useState(0);
     const [expandedGastoId, setExpandedGastoId] = useState(null);
+    const [filteredData, setFilteredData] = useState([]);
+    const [filterText, setFilterText] = useState('');
 
     useEffect(() => {
         const total = state.gastos.reduce((acc, gasto) => acc + (parseFloat(gasto.gasto) || 0), 0);
@@ -31,13 +34,80 @@ export default function TransactionsPage() {
         };
     }, [state.isModalOpen]);
 
-
-    const [filterText, setFilterText] = useState('');
-
     // Filtra los gastos en función del texto del filtro
     const filteredGastos = state.gastos
-        .filter(gasto => gasto.title.toLowerCase().includes(filterText.toLowerCase()) || gasto.remarks.toLowerCase().includes(filterText.toLowerCase()))
+        .filter(gasto => gasto.title.toLowerCase().includes(filterText.toLowerCase()) || gasto.remarks.toLowerCase().includes(filterText.toLowerCase()) || gasto.category.toLowerCase().includes(filterText.toLowerCase()))
         .sort((a, b) => b.createdAt - a.createdAt);
+
+    const handleFilter = (e) => {
+        const value = e.target.value;
+
+        // Actualizar el filtro de texto
+        if (value !== undefined) {
+            setFilterText(value);
+        }
+
+        let filtered = state.gastos;
+
+        // Filtrar por texto
+        if (filterText) {
+            filtered = filtered.filter(gasto =>
+                gasto.title.toLowerCase().includes(filterText.toLowerCase()) ||
+                gasto.category.toLowerCase().includes(filterText.toLowerCase()) ||
+                gasto.remarks.toLowerCase().includes(filterText.toLowerCase())
+            );
+        }
+
+        // Filtrar por categoría
+        if (value && value !== "Todos") {
+            filtered = filtered.filter(gasto => gasto.category === value || (value === "null" && gasto.category == null));
+        }
+
+        setFilteredData(filtered);
+    };
+
+    const items_filter = [
+        {
+            slug: handleFilter,
+            label: "Todos",
+            anchor: "",
+        },
+        {
+            slug: handleFilter,
+            label: "Alimentación y Bebidas",
+            anchor: 'feeding',
+        },
+        {
+            slug: handleFilter,
+            label: "Transporte",
+            anchor: "transportation",
+        },
+        {
+            slug: handleFilter,
+            label: "Salud y Bienestar",
+            anchor: "health",
+        },
+        {
+            slug: handleFilter,
+            label: "Gastos de Educación o Trabajo",
+            anchor: "educationJob",
+        },
+        {
+            slug: handleFilter,
+            label: "Vivienda",
+            anchor: "housing",
+        },
+        {
+            slug: handleFilter,
+            label: "Entretenimiento y Ocio",
+            anchor: "entertainment",
+        },
+        {
+            slug: handleFilter,
+            label: "Ropa y Cuidado Personal",
+            anchor: "personalCare",
+        },
+    ];
 
     const handleCardClick = (id) => {
         setExpandedGastoId(expandedGastoId === id ? null : id);
@@ -331,11 +401,11 @@ export default function TransactionsPage() {
                 <p className="text-main-primary">-$7,000.00</p> */}
             </section>
 
-            <section className="relative rounded-3xl py-2 px-4 mb-4 bg-main-dark/5">
-                <div className="flex-center pt-2 py-2">
-                    <i className="flex-center w-6 h-6 opacity-30">
+            <section className="relative py-2 mb-2 flex items-center">
+                <div className="w-full flex-center pl-4 rounded-3xl bg-main-dark/5">
+                    <i className="flex-center w-6 h-6 opacity-40">
                         {
-                            ICONS.search.fill("#1C1C1E")
+                            ICONS.search.border("#1C1C1E")
                         }
                     </i>
                     <input
@@ -343,8 +413,15 @@ export default function TransactionsPage() {
                         placeholder="Filtrar gastos..."
                         value={filterText}
                         onChange={(e) => setFilterText(e.target.value)}
-                        className="w-full pl-1 bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
+                        className="w-full h-full pl-1 py-4 bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
                         required
+                    />
+                    <FilterButton
+                        label={
+                            <i className="flex-center w-6 h-6">
+                                {ICONS.filter.fill("#C2185B")}
+                            </i>}
+                        items={items_filter}
                     />
                 </div>
             </section>
@@ -359,8 +436,12 @@ export default function TransactionsPage() {
             </section> */}
 
             {/* Sección de Últimos Gastos */}
-            <section className="w-full max-w-screen-sm py-3 mb-20">
-                <h2 className="text-main-dark text-lg font-semibold mb-4">Gastos</h2>
+            <section className="w-full max-w-screen-sm mb-20">
+                <hgroup className="mb-4">
+                    <h2 className="text-main-dark py-2 text-lg font-semibold border-b border-main-dark/20">Gastos</h2>
+                    <p className="py-2 text-sm font-light text-main-dark/50">{filteredGastos.length} Resultados</p>
+                </hgroup>
+
                 {state.loading ? (
                     <Spinner bgTheme={true} />
                 ) : filteredGastos.length > 0 ? (

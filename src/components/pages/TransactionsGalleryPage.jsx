@@ -11,6 +11,7 @@ export default function TransactionsGalleryPage() {
     const [totalGastos, setTotalGastos] = useState(0);
     const [filteredData, setFilteredData] = useState([]);
     const [filterText, setFilterText] = useState('');
+    const [zoomedPostId, setZoomedPostId] = useState(null);
 
     useEffect(() => {
         const total = state.gastos.reduce((acc, gasto) => acc + (parseFloat(gasto.gasto) || 0), 0);
@@ -110,6 +111,10 @@ export default function TransactionsGalleryPage() {
         },
     ];
 
+    const handleZoomToggle = (postId) => {
+        setZoomedPostId(prevZoomedPostId => prevZoomedPostId === postId ? null : postId);
+    };
+
 
     if (isLoading) {
         return <Spinner bgTheme={true} />;
@@ -154,7 +159,7 @@ export default function TransactionsGalleryPage() {
             {/* Sección de Últimos Gastos */}
             <section className="w-full max-w-screen-sm mb-20">
                 <hgroup className="mb-4">
-                    <h2 className="text-main-dark py-2 text-lg font-semibold border-b border-main-dark/20">Gastos</h2>
+                    <h2 className="text-main-dark py-2 text-lg font-semibold border-b border-main-dark/20">Tickets de Gastos</h2>
                     <p className="py-2 text-sm font-light text-main-dark/50">{filteredGastos.length} Resultados</p>
                 </hgroup>
 
@@ -165,9 +170,20 @@ export default function TransactionsGalleryPage() {
                         {filteredGastos
                             .sort((a, b) => b.createdAt - a.createdAt)
                             .map(gasto => (
-                                <picture key={gasto.id} className={`w-1/3 p-[1px] hover:w-full`}>
-                                    <img src={gasto.fileURL} alt={gasto.title} className="w-full object-cover" />
+                                <picture
+                                    key={gasto.id}
+                                    className={`${zoomedPostId === gasto.id ? 'w-full md:w-[72.666%]' : 'w-[32%] md:w-[24%]'
+                                        } flex flex-col rounded-lg cursor-pointer transition-all duration-500 ease-in-out p-[1px]`}
+                                    onClick={() => handleZoomToggle(gasto.id)}
+                                >
+                                    <img
+                                        src={gasto.fileURL}
+                                        alt={gasto.title}
+                                        loading="lazy"
+                                        className={`object-cover w-full h-full md:min-h-[200px] rounded-lg blurred-img bg-neutral-250 dark:bg-[#000e2c] ${zoomedPostId === gasto.id ? 'scale-110' : ''}`}
+                                    />
                                 </picture>
+
                             ))}
                     </ul>
                 ) : (

@@ -348,6 +348,10 @@ export default function HomePage() {
         ],
     };
 
+    const totalBudget = !loading && userData && userData.expenseControl && userData.expenseControl.budget
+    const totalSpent = !loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos
+    const percentSpent = totalSpent * 100 / totalBudget
+
     if (state.loading) {
         return <Spinner />;
     }
@@ -362,8 +366,8 @@ export default function HomePage() {
             <section className="w-full max-w-screen-sm mt-6 py-3 flex flex-col items-center">
                 <p className="leading-3 text-main-dark/50">Gastos Totales</p>
                 <h1 className="text-4xl font-bold text-main-dark my-1">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h1>
-                <p className={` ${!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos < 0 ? 'text-main-primary' : 'text-main-highlight'}`}>
-                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos.toFixed(2))}
+                <p className={` ${totalBudget - totalGastos < 0 ? 'text-main-primary' : 'text-main-highlight'}`}>
+                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalBudget - totalGastos.toFixed(2))}
                 </p>
             </section>
 
@@ -392,6 +396,7 @@ export default function HomePage() {
                                 <Pie
                                     data={categoryChartData}
                                     options={{
+                                        cutout: '35%',
                                         plugins: {
                                             tooltip: {
                                                 callbacks: {
@@ -406,6 +411,25 @@ export default function HomePage() {
                                         }
                                     }}
                                 />
+                                {/* <Pie
+                                    data={categoryChartData}
+                                    options={{
+                                        cutout: '50%', // Esto convierte el gráfico de pie en una dona
+                                        plugins: {
+                                            tooltip: {
+                                                callbacks: {
+                                                    label: (tooltipItem) => {
+                                                        return `${categoryLabels[tooltipItem.dataIndex]}: $${categoryValues[tooltipItem.dataIndex].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                                    }
+                                                }
+                                            },
+                                            legend: {
+                                                display: false,
+                                            }
+                                        }
+                                    }}
+                                /> */}
+
                             </div>
                             <p className="text-main-dark text-center sm:text-left flex flex-col items-start font-light uppercase text-xs mt-2">
                                 Gastos por<span className="font-semibold text-base text-main-primary">Categoría</span>
@@ -514,7 +538,7 @@ export default function HomePage() {
                                         </span>
                                         <span
                                             className="text-xl font-semibold text-main-dark leading-4"
-                                            //style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}
+                                        //style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}
                                         >
                                             ${paymentValues[index].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </span>
@@ -525,23 +549,40 @@ export default function HomePage() {
                     ))}
                 </aside>
 
-                <div className="bg-main-dark/5 rounded-3xl p-4 flex justify-between items-center">
-                    <span className="text-main-dark">Presupuesto</span>
-                    <span className="text-main-dark font-semibold"> {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(!loading && userData && userData.expenseControl && userData.expenseControl.budget)}
-                    </span>
+                <div className="w-full flex flex-wrap items-stretch gap-[4%]">
+                    <div className={`bg-main-dark/5 rounded-3xl p-4 flex justify-between ${percentSpent < 0 ? 'flex-col items-start w-[48%] max-w-[300px]' : 'w-full items-center'}`}>
+                        <span className="text-main-dark">Presupuesto</span>
+                        <span className="text-main-dark font-semibold"> {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalBudget)}
+                        </span>
+                    </div>
+                    <div className={`bg-main-dark/5 rounded-3xl p-4 flex justify-between ${percentSpent < 0 ? 'flex-col items-start  w-[48%] max-w-[300px]' : 'w-full items-center mt-4'}`}>
+                        <span className="text-main-dark">Gastos Totales</span>
+                        <span className="text-main-dark font-semibold">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
                 </div>
-                <div className="bg-main-dark/5 rounded-3xl p-4 flex justify-between items-center mt-4">
-                    <span className="text-main-dark">Gastos Totales</span>
-                    <span className="text-main-dark font-semibold">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+
+                <div className="w-full flex flex-wrap items-stretch gap-[4%] mt-4">
+                    <div className={`${(totalSpent) < 0 ? 'bg-main-dark/20' : 'bg-main-dark/5'} ${percentSpent < 0 ? 'w-[48%] max-w-[300px]' : 'w-full'} bg-main-dark/20 rounded-3xl p-4 flex justify-between items-center`}>
+                        <span className="text-main-dark">Saldo Actual</span>
+                        <span className={`${totalSpent < 0 ? 'text-main-primary' : 'text-main-highlight'} font-semibold`}>
+                            {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalSpent)}
+                        </span>
+                    </div>
+
+                    {percentSpent < 0 &&
+                        <div className="w-[48%] max-w-[300px] bg-main-primary/20 rounded-3xl p-4 flex items-center justify-between gap-1
+                    opacity-0 transform scale-95 transition-all duration-500 ease-out motion-safe:animate-fade-in">
+                            <i className="flex-center w-6 h-6">{ICONS.alert.border("#C2185B")}</i>
+                            <span className="text-sm text-main-primary">
+                                Has gastado
+                                <span className="text-base font-semibold text-main-primary">
+                                    {` ${percentSpent.toFixed(2)}% `}
+                                </span>
+                                más de lo que deberías este mes.
+                            </span>
+                        </div>
+                    }
                 </div>
-                <div className={`${(!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos) < 0 ? 'bg-main-dark/20' : 'bg-main-dark/5'} bg-main-dark/20 rounded-3xl p-4 flex justify-between items-center mt-4`}>
-                    <span className="text-main-dark">Saldo Actual</span>
-                    <span className={`${!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos < 0 ? 'text-main-primary' : 'text-main-highlight'} font-semibold`}>{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(!loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos)}</span>
-                </div>
-                {/* <div className="bg-main-primary/20 rounded-3xl p-4 flex justify-between items-center mt-2">
-                    <span className="text-main-primary font-semibold">Exceso</span>
-                    <span className="text-main-primary font-semibold">- $7,505.00 (75.05%)</span>
-                </div> */}
             </section>
 
             {/* Sección de Últimos Gastos */}

@@ -6,6 +6,7 @@ import Layout from "@layout";
 // Lazy loading components
 const HomePage = lazy(() => import("@components/pages/HomePage"));
 const TransactionsPage = lazy(() => import("@components/pages/TransactionsPage"));
+const TransactionsGalleryPage = lazy(() => import("@components/pages/TransactionsGalleryPage"));
 const ProfilePage = lazy(() => import("@components/pages/ProfilePage"));
 const LoginPage = lazy(() => import("@components/pages/LoginPage"));
 const RegisterPage = lazy(() => import("@components/pages/RegisterPage"));
@@ -18,6 +19,7 @@ export const Routes = () => {
 			children: [
 				{ path: "/", element: <HomePage /> },
 				{ path: "/transactions", element: <TransactionsPage /> },
+				{ path: "/gallery", element: <TransactionsGalleryPage /> },
 				{ path: "/profile", element: <ProfilePage /> },
 			],
 		},

@@ -40,7 +40,6 @@ export default function TransactionsGalleryPage() {
         )
         .sort((a, b) => b.createdAt - a.createdAt);
 
-
     const handleFilter = (e) => {
         const value = e.target.value;
 
@@ -115,7 +114,6 @@ export default function TransactionsGalleryPage() {
         setZoomedPostId(prevZoomedPostId => prevZoomedPostId === postId ? null : postId);
     };
 
-
     if (isLoading) {
         return <Spinner bgTheme={true} />;
     }
@@ -172,7 +170,7 @@ export default function TransactionsGalleryPage() {
                             .map(gasto => (
                                 <picture
                                     key={gasto.id}
-                                    className={`${zoomedPostId === gasto.id ? 'w-full md:w-[72.666%]' : 'w-[32%] md:w-[24%]'
+                                    className={`${zoomedPostId === gasto.id ? 'w-full md:w-[72.666%]' : 'w-1/3 md:w-[24%]'
                                         } flex flex-col rounded-lg cursor-pointer transition-all duration-500 ease-in-out p-[1px]`}
                                     onClick={() => handleZoomToggle(gasto.id)}
                                 >

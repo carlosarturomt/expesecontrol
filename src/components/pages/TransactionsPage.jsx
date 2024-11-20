@@ -16,11 +16,55 @@ export default function TransactionsPage() {
     const [expandedGastoId, setExpandedGastoId] = useState(null);
     const [filteredData, setFilteredData] = useState([]);
     const [filterText, setFilterText] = useState('');
+    const [filteredGastoss, setFilteredGastoss] = useState([]);
+
 
     useEffect(() => {
-        const total = state.gastos.reduce((acc, gasto) => acc + (parseFloat(gasto.gasto) || 0), 0);
+        if (!userData || !state.gastos || loading) return;
+
+        const cutoffDay = parseInt(userData?.expenseControl?.cutoffDay, 10) || 12;
+        const today = new Date();
+        const currentDay = today.getDate();
+        const currentMonth = today.getMonth();
+        const currentYear = today.getFullYear();
+
+        // Calcular el rango de fechas
+        const startDate = new Date(
+            currentYear,
+            currentMonth - (currentDay < cutoffDay ? 1 : 0), // Mes anterior si el día actual es menor al cutoff
+            cutoffDay
+        );
+
+        const endDate = new Date(
+            startDate.getFullYear(),
+            startDate.getMonth() + 1, // Un mes después del startDate
+            cutoffDay - 1,
+            23,
+            59,
+            59
+        );
+
+        console.log("Rango de fechas:", { startDate, endDate });
+
+        // Filtrar los gastos
+        const gastosFiltrados = state.gastos.filter((gasto) => {
+            const gastoDate = gasto.createdAt instanceof Date ? gasto.createdAt : gasto.createdAt.toDate();
+            console.log("GastoDate:", gastoDate, "Dentro del rango:", gastoDate >= startDate && gastoDate <= endDate);
+            return gastoDate >= startDate && gastoDate <= endDate;
+        });
+
+        console.log("Gastos filtrados:", gastosFiltrados);
+
+        setFilteredGastoss(gastosFiltrados);
+
+        // Calcular el total
+        const total = gastosFiltrados.reduce(
+            (acc, gasto) => acc + (parseFloat(gasto.gasto) || 0),
+            0
+        );
         setTotalGastos(total);
-    }, [state.gastos]);
+    }, [state.gastos, userData, loading]);
+
 
     useEffect(() => {
         if (state.isModalOpen) {
@@ -113,9 +157,9 @@ export default function TransactionsPage() {
         setExpandedGastoId(expandedGastoId === id ? null : id);
     };
 
-    const handleEdit = async (year, period, id) => {
+    const handleEdit = async (id) => {
         try {
-            const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", year, period, id);
+            const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
             const gastoSnap = await getDoc(gastoRef);
 
             if (gastoSnap.exists()) {
@@ -123,39 +167,46 @@ export default function TransactionsPage() {
 
                 setState((prev) => ({
                     ...prev,
-                    gasto: gastoData.gasto || '',
-                    title: gastoData.title || '',
-                    remarks: gastoData.remarks || '',
-                    category: gastoData.category || '',
-                    type: gastoData.type || '',
-                    date: gastoData.createdAt
-                        ? gastoData.createdAt.toDate().toISOString().substring(0, 10)  // Formato ISO para <input type="date">
+                    gasto: gastoData?.gasto || '',
+                    title: gastoData?.title || '',
+                    remarks: gastoData?.remarks || '',
+                    category: gastoData?.category || '',
+                    type: gastoData?.type || '',
+                    date: gastoData?.createdAt
+                        ? gastoData.createdAt.toDate().toISOString().substring(0, 10)
                         : '',
-                    fileURL: gastoData.fileURL || '',
+                    fileURL: gastoData?.fileURL || '',
                     isModalOpen: true,
-                    currentGastoId: id,  // Guarda el ID del gasto actual
+                    currentGastoId: id,
                 }));
             } else {
-                console.error("No se encontró el gasto para editar.");
+                console.error(`El gasto con ID: ${id} no existe.`);
             }
         } catch (error) {
             console.error("Error al obtener los datos del gasto:", error);
         }
     };
 
-    const handleDelete = async (year, period, id) => {
-        console.log(year, period, id);
-        const confirmDelete = window.confirm(`¿Estás seguro de que deseas eliminar el gasto con ID: ${id}?`);
+    const handleDelete = async (id) => {
+        const confirmDelete = window.confirm(`¿Estás seguro de que deseas eliminar este gasto?`);
         if (confirmDelete) {
             try {
-                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", year, period, id);
+                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
                 await deleteDoc(gastoRef);
+
                 console.log(`Gasto con ID: ${id} eliminado.`);
+
+                // Actualiza el estado local en lugar de recargar la página
+                setState((prev) => ({
+                    ...prev,
+                    gastos: prev.gastos.filter((gasto) => gasto.id !== id),
+                }));
             } catch (error) {
                 console.error("Error al eliminar el gasto: ", error);
             }
         }
     };
+
 
     const openModal = () => setState(prev => ({ ...prev, isModalOpen: true }));
     const closeModal = () => setState(prev => ({ ...prev, isModalOpen: false }));
@@ -229,103 +280,51 @@ export default function TransactionsPage() {
         const day = date.getDate();
 
         // Obtener la fecha de corte del usuario desde su perfil
-        const userCutoffDay = userAuth.cutoffDay || 12; // Valor por defecto al 12 si no está configurado
+        const userCutoffDay = userData?.expenseControl.cutoffDay || 1; // Valor por defecto al 1 si no está configurado
 
         const yearString = String(year);
-        let period = ""; // Mueve esta línea aquí
+        let period = "";
 
         // Determinación del periodo
         if (day < userCutoffDay) {
-            // Si el día es menor que el día de corte, consideramos el mes anterior
             switch (month) {
-                case 0: // Enero
-                    period = "diciembreEnero";
-                    break;
-                case 1: // Febrero
-                    period = "eneroFebrero";
-                    break;
-                case 2: // Marzo
-                    period = "febreroMarzo";
-                    break;
-                case 3: // Abril
-                    period = "marzoAbril";
-                    break;
-                case 4: // Mayo
-                    period = "abrilMayo";
-                    break;
-                case 5: // Junio
-                    period = "mayoJunio";
-                    break;
-                case 6: // Julio
-                    period = "junioJulio";
-                    break;
-                case 7: // Agosto
-                    period = "julioAgosto";
-                    break;
-                case 8: // Septiembre
-                    period = "agostoSeptiembre";
-                    break;
-                case 9: // Octubre
-                    period = "septiembreOctubre";
-                    break;
-                case 10: // Noviembre
-                    period = "octubreNoviembre";
-                    break;
-                case 11: // Diciembre
-                    period = "noviembreDiciembre";
-                    break;
-                default:
-                    period = "desconocido";
+                case 0: period = "diciembreEnero"; break;
+                case 1: period = "eneroFebrero"; break;
+                case 2: period = "febreroMarzo"; break;
+                case 3: period = "marzoAbril"; break;
+                case 4: period = "abrilMayo"; break;
+                case 5: period = "mayoJunio"; break;
+                case 6: period = "junioJulio"; break;
+                case 7: period = "julioAgosto"; break;
+                case 8: period = "agostoSeptiembre"; break;
+                case 9: period = "septiembreOctubre"; break;
+                case 10: period = "octubreNoviembre"; break;
+                case 11: period = "noviembreDiciembre"; break;
+                default: period = "desconocido";
             }
         } else {
-            // Si el día es igual o mayor que el día de corte, consideramos el mes actual
             switch (month) {
-                case 0:
-                    period = "eneroFebrero";
-                    break;
-                case 1:
-                    period = "febreroMarzo";
-                    break;
-                case 2:
-                    period = "marzoAbril";
-                    break;
-                case 3:
-                    period = "abrilMayo";
-                    break;
-                case 4:
-                    period = "mayoJunio";
-                    break;
-                case 5:
-                    period = "junioJulio";
-                    break;
-                case 6:
-                    period = "julioAgosto";
-                    break;
-                case 7:
-                    period = "agostoSeptiembre";
-                    break;
-                case 8:
-                    period = "septiembreOctubre";
-                    break;
-                case 9:
-                    period = "octubreNoviembre";
-                    break;
-                case 10:
-                    period = "noviembreDiciembre";
-                    break;
-                case 11:
-                    period = "diciembreEnero";
-                    break;
-                default:
-                    period = "desconocido";
+                case 0: period = "eneroFebrero"; break;
+                case 1: period = "febreroMarzo"; break;
+                case 2: period = "marzoAbril"; break;
+                case 3: period = "abrilMayo"; break;
+                case 4: period = "mayoJunio"; break;
+                case 5: period = "junioJulio"; break;
+                case 6: period = "julioAgosto"; break;
+                case 7: period = "agostoSeptiembre"; break;
+                case 8: period = "septiembreOctubre"; break;
+                case 9: period = "octubreNoviembre"; break;
+                case 10: period = "noviembreDiciembre"; break;
+                case 11: period = "diciembreEnero"; break;
+                default: period = "desconocido";
             }
         }
 
-        // Continuación del manejo del archivo y la base de datos
         try {
             let fileURL = state.fileURL; // Mantén la URL original del archivo si existe
 
-            if (state.file) {  // Si se selecciona un archivo nuevo, sube ese archivo
+            // Solo sube el archivo si el usuario ha seleccionado uno
+            if (state.file) {
                 const timestamp = Date.now();
                 const fileName = `${state.title}_${timestamp}.${state.file.name.split('.').pop()}`;
                 const storageRef = ref(storage, `userFiles/${userAuth.username}/${fileName}`);
@@ -334,36 +333,33 @@ export default function TransactionsPage() {
                 fileURL = await getDownloadURL(storageRef);
             }
 
-            if (state.currentGastoId) {
-                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", yearString, period, String(state.currentGastoId));
-                await updateDoc(gastoRef, {
-                    gasto: gastoValue,
-                    title: state.title,
-                    remarks: state.remarks,
-                    type: state.type,
-                    category: state.category,
-                    fileURL: fileURL,  // Usa la URL actualizada o la original
-                    user: userAuth.username,
-                    createdAt: date,
-                    year: yearString,
-                    period: period,
-                });
-            } else {
-                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos", yearString, period);
-                await addDoc(gastosRef, {
-                    gasto: gastoValue,
-                    title: state.title,
-                    remarks: state.remarks,
-                    type: state.type,
-                    category: state.category,
-                    fileURL: fileURL,  // Usa la URL del archivo
-                    user: userAuth.username,
-                    createdAt: date,
-                    year: yearString,
-                    period: period,
-                });
+            // Prepara el objeto de datos a guardar
+            const dataToSave = {
+                gasto: gastoValue,
+                title: state.title,
+                remarks: state.remarks,
+                type: state.type,
+                category: state.category,
+                user: userAuth.username,
+                createdAt: date,
+                year: yearString,
+                period: period,
+            };
+
+            // Solo incluir fileURL si se obtuvo una URL válida
+            if (fileURL) {
+                dataToSave.fileURL = fileURL;
             }
 
+            if (state.currentGastoId) {
+                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", String(state.currentGastoId));
+                await updateDoc(gastoRef, dataToSave);
+            } else {
+                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos");
+                await addDoc(gastosRef, dataToSave);
+            }
+
+            // Limpiar el estado después de la operación
             setState(prev => ({
                 ...prev,
                 gasto: "",
@@ -376,6 +372,8 @@ export default function TransactionsPage() {
                 error: "",
                 currentGastoId: null,
             }));
+
+            setTimeout(() => location.reload(), 1000)
         } catch (error) {
             console.error("Error al subir datos: ", error);
             setState(prev => ({ ...prev, error: "Error al subir los datos: " + error.message, isSubmitting: false }));
@@ -426,15 +424,6 @@ export default function TransactionsPage() {
                 </div>
             </section>
 
-            {/* <section className="w-full max-w-screen-sm py-6">
-                <h2 className="text-main-dark text-lg font-semibold mb-4">Objetivos Financieros</h2>
-                <div className="bg-main-dark/5 rounded-3xl p-4">
-                    <p className="text-main-dark">Ahorra para un viaje</p>
-                    <div className="bg-blue-500 rounded-full h-2" style={{ width: "60%" }}></div>
-                    <p className="text-main-primary font-semibold">Progreso: $600.00 / $1,000.00</p>
-                </div>
-            </section> */}
-
             {/* Sección de Últimos Gastos */}
             <section className="w-full max-w-screen-sm mb-20">
                 <hgroup className="mb-4">
@@ -444,22 +433,25 @@ export default function TransactionsPage() {
 
                 {state.loading ? (
                     <Spinner bgTheme={true} />
-                ) : filteredGastos.length > 0 ? (
-                    <ul className="space-y-3">
-                        {filteredGastos
-                            .sort((a, b) => b.createdAt - a.createdAt)
-                            .map(gasto => (
-                                <SwipeableCard
-                                    key={gasto.id}
-                                    context={userData}
-                                    data={gasto}
-                                    onEdit={() => handleEdit(gasto.year, gasto.period, gasto.id)}
-                                    onDelete={() => handleDelete(gasto.year, gasto.period, gasto.id)}
-                                    expandedGastoId={expandedGastoId}
-                                    onCardClick={handleCardClick}
-                                />
-                            ))}
-                    </ul>
+                ) : filteredGastoss.length > 0 ? (
+                    filteredGastoss
+                        .sort((a, b) => {
+                            const dateA = a.createdAt instanceof Date ? a.createdAt : a.createdAt.toDate();
+                            const dateB = b.createdAt instanceof Date ? b.createdAt : b.createdAt.toDate();
+                            return dateB.getTime() - dateA.getTime(); // Ordenar por fecha descendente
+                        })
+                        .slice(0, 6) // Mostrar los primeros 6
+                        .map((gasto) => (
+                            <SwipeableCard
+                                key={gasto.id}
+                                context={userData}
+                                data={gasto}
+                                onEdit={() => handleEdit(gasto.id)}
+                                onDelete={() => handleDelete(gasto.id)}
+                                expandedGastoId={expandedGastoId}
+                                onCardClick={handleCardClick}
+                            />
+                        ))
                 ) : (
                     <li className="flex justify-between items-center bg-main-dark/5 rounded-3xl p-4">
                         <span className="text-main-dark font-medium">No hay gastos registrados</span>

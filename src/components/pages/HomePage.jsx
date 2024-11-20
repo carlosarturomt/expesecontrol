@@ -24,11 +24,53 @@ export default function HomePage() {
     const { loading, userAuth, userData, state, setState } = useContext(UserDataContext);
     const [totalGastos, setTotalGastos] = useState(0);
     const [expandedGastoId, setExpandedGastoId] = useState(null);
+    const [filteredGastos, setFilteredGastos] = useState([]);
 
     useEffect(() => {
-        const total = state.gastos.reduce((acc, gasto) => acc + (parseFloat(gasto.gasto) || 0), 0);
+        if (!userData || !state.gastos || loading) return;
+
+        const cutoffDay = parseInt(userData?.expenseControl?.cutoffDay, 10) || 12;
+        const today = new Date();
+        const currentDay = today.getDate();
+        const currentMonth = today.getMonth();
+        const currentYear = today.getFullYear();
+
+        // Calcular el rango de fechas
+        const startDate = new Date(
+            currentYear,
+            currentMonth - (currentDay < cutoffDay ? 1 : 0), // Mes anterior si el día actual es menor al cutoff
+            cutoffDay
+        );
+
+        const endDate = new Date(
+            startDate.getFullYear(),
+            startDate.getMonth() + 1, // Un mes después del startDate
+            cutoffDay - 1,
+            23,
+            59,
+            59
+        );
+
+        console.log("Rango de fechas:", { startDate, endDate });
+
+        // Filtrar los gastos
+        const gastosFiltrados = state.gastos.filter((gasto) => {
+            const gastoDate = gasto.createdAt instanceof Date ? gasto.createdAt : gasto.createdAt.toDate();
+            console.log("GastoDate:", gastoDate, "Dentro del rango:", gastoDate >= startDate && gastoDate <= endDate);
+            return gastoDate >= startDate && gastoDate <= endDate;
+        });
+
+        console.log("Gastos filtrados:", gastosFiltrados);
+
+        setFilteredGastos(gastosFiltrados);
+
+        // Calcular el total
+        const total = gastosFiltrados.reduce(
+            (acc, gasto) => acc + (parseFloat(gasto.gasto) || 0),
+            0
+        );
         setTotalGastos(total);
-    }, [state.gastos]);
+    }, [state.gastos, userData, loading]);
 
     useEffect(() => {
         if (state.isModalOpen) {
@@ -46,9 +88,9 @@ export default function HomePage() {
         setExpandedGastoId(expandedGastoId === id ? null : id);
     };
 
-    const handleEdit = async (year, period, id) => {
+    /* const handleEdit = async (id) => {
         try {
-            const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", year, period, id);
+            const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
             const gastoSnap = await getDoc(gastoRef);
 
             if (gastoSnap.exists()) {
@@ -74,22 +116,58 @@ export default function HomePage() {
         } catch (error) {
             console.error("Error al obtener los datos del gasto:", error);
         }
+    }; */
+
+    const handleEdit = async (id) => {
+        try {
+            const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
+            const gastoSnap = await getDoc(gastoRef);
+
+            if (gastoSnap.exists()) {
+                const gastoData = gastoSnap.data();
+
+                setState((prev) => ({
+                    ...prev,
+                    gasto: gastoData?.gasto || '',
+                    title: gastoData?.title || '',
+                    remarks: gastoData?.remarks || '',
+                    category: gastoData?.category || '',
+                    type: gastoData?.type || '',
+                    date: gastoData?.createdAt
+                        ? gastoData.createdAt.toDate().toISOString().substring(0, 10)
+                        : '',
+                    fileURL: gastoData?.fileURL || '',
+                    isModalOpen: true,
+                    currentGastoId: id,
+                }));
+            } else {
+                console.error(`El gasto con ID: ${id} no existe.`);
+            }
+        } catch (error) {
+            console.error("Error al obtener los datos del gasto:", error);
+        }
     };
 
-    const handleDelete = async (year, period, id) => {
-        console.log(year, period, id);
-        const confirmDelete = window.confirm(`¿Estás seguro de que deseas eliminar el gasto con ID: ${id}?`);
+    const handleDelete = async (id) => {
+        const confirmDelete = window.confirm(`¿Estás seguro de que deseas eliminar este gasto?`);
         if (confirmDelete) {
             try {
-                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", year, period, id);
+                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
                 await deleteDoc(gastoRef);
+
                 console.log(`Gasto con ID: ${id} eliminado.`);
-                setTimeout(() => location.reload(), 1000)
+
+                // Actualiza el estado local en lugar de recargar la página
+                setState((prev) => ({
+                    ...prev,
+                    gastos: prev.gastos.filter((gasto) => gasto.id !== id),
+                }));
             } catch (error) {
                 console.error("Error al eliminar el gasto: ", error);
             }
         }
     };
+
 
     const openModal = () => setState(prev => ({ ...prev, isModalOpen: true }));
     const closeModal = () => setState(prev => ({ ...prev, isModalOpen: false }));
@@ -235,10 +313,10 @@ export default function HomePage() {
             }
 
             if (state.currentGastoId) {
-                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", yearString, period, String(state.currentGastoId));
+                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", String(state.currentGastoId));
                 await updateDoc(gastoRef, dataToSave);
             } else {
-                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos", yearString, period);
+                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos");
                 await addDoc(gastosRef, dataToSave);
             }
 
@@ -265,36 +343,6 @@ export default function HomePage() {
         }
     };
 
-    /* useEffect(() => {
-        const total = state.gastos.reduce((acc, gasto) => acc + (parseFloat(gasto.gasto) || 0), 0);
-        setTotalGastos(total);
-    }, [state.gastos]);
-
-    const groupedData = state.gastos.reduce((acc, item) => {
-        if (!acc[item.category]) {
-            acc[item.category] = 0;
-        }
-        acc[item.category] += item.gasto;
-        return acc;
-    }, {});
-
-    // Extraer las categorías (labels) y los valores (data)
-    const labels = Object.keys(groupedData);
-    const values = Object.values(groupedData);
-
-    // Preparar los datos para el gráfico de pastel
-    const chartData = {
-        labels: labels,
-        datasets: [
-            {
-                label: 'Gastos por Categoría',
-                data: values,
-                backgroundColor: ['#C2185B', '#00A86B', '#580d71', '#EF5350', '#7c90bc'], // Colores personalizados para cada porción
-                borderColor: '#fff',
-                borderWidth: 1,
-            }
-        ],
-    }; */
     // Agrupar por categoría
     const groupedByCategory = state.gastos.reduce((acc, item) => {
         if (!acc[item.category]) {
@@ -359,6 +407,9 @@ export default function HomePage() {
     if (!isAuthenticated) {
         return null;
     }
+
+    console.log('filteredGastos: ', filteredGastos);
+
 
     return (
         <div>
@@ -591,24 +642,25 @@ export default function HomePage() {
                 <ul className="space-y-3">
                     {state.loading ? (
                         <Spinner bgTheme={true} />
-                    ) : state.gastos.length > 0 ? (
-                        <ul className="space-y-4">
-                            {state.gastos
-                                .sort((a, b) => b.createdAt - a.createdAt).slice(0, 6)
-                                .map(gasto => {
-                                    return (
-                                        <SwipeableCard
-                                            key={gasto.id}
-                                            context={userData}
-                                            data={gasto}
-                                            onEdit={() => handleEdit(gasto.year, gasto.period, gasto.id)}
-                                            onDelete={() => handleDelete(gasto.year, gasto.period, gasto.id)}
-                                            expandedGastoId={expandedGastoId}
-                                            onCardClick={handleCardClick}
-                                        />
-                                    )
-                                })}
-                        </ul>
+                    ) : filteredGastos.length > 0 ? (
+                        filteredGastos
+                            .sort((a, b) => {
+                                const dateA = a.createdAt instanceof Date ? a.createdAt : a.createdAt.toDate();
+                                const dateB = b.createdAt instanceof Date ? b.createdAt : b.createdAt.toDate();
+                                return dateB.getTime() - dateA.getTime(); // Ordenar por fecha descendente
+                            })
+                            .slice(0, 6) // Mostrar los primeros 6
+                            .map((gasto) => (
+                                <SwipeableCard
+                                    key={gasto.id}
+                                    context={userData}
+                                    data={gasto}
+                                    onEdit={() => handleEdit(gasto.id)}
+                                    onDelete={() => handleDelete(gasto.id)}
+                                    expandedGastoId={expandedGastoId}
+                                    onCardClick={handleCardClick}
+                                />
+                            ))
                     ) : (
                         <li className="flex justify-between items-center bg-main-dark/5 rounded-3xl p-4">
                             <span className="text-main-dark font-medium">No hay gastos registrados</span>

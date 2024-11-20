@@ -239,7 +239,6 @@ function SwipeableCard({ context, data, onEdit, onDelete, expandedGastoId, onCar
 
 	return (
 		<div className="relative flex items-center bg-main-dark/5 rounded-3xl overflow-hidden">
-			{/* Contenido de la tarjeta */}
 			<div
 				className="relative w-full transition-transform duration-300 rounded-3xl"
 				style={{
@@ -258,12 +257,16 @@ function SwipeableCard({ context, data, onEdit, onDelete, expandedGastoId, onCar
 				</div>
 				{expandedGastoId === data.id && (
 					<div className="px-4 pb-4 text-sm text-main-dark/60">
-						{data.createdAt &&
+						{data.createdAt && (
 							<p className="flex flex-col pb-2 border-b border-main-dark/20">
 								<strong className="font-medium text-main-dark">Fecha</strong>
-								{data.createdAt.toDate().toLocaleDateString()}
+								{(data.createdAt instanceof Date
+									? data.createdAt
+									: data.createdAt.toDate()
+								).toLocaleDateString()}
 							</p>
-						}
+						)}
+
 						{data.remarks &&
 							<p className="flex flex-col py-2 border-b border-main-dark/20">
 								<strong className="font-medium text-main-dark">Notas</strong>
@@ -355,7 +358,6 @@ function SwipeableCard({ context, data, onEdit, onDelete, expandedGastoId, onCar
 				)}
 			</div>
 
-			{/* Área de Editar */}
 			<div
 				className={`absolute inset-y-0 bg-main-highlight/70 text-white flex items-center justify-center transition-all duration-300 ${swipeDistance == -150 ? 'right-1/4' : 'right-0'}`}
 				style={{
@@ -367,7 +369,6 @@ function SwipeableCard({ context, data, onEdit, onDelete, expandedGastoId, onCar
 				Editar
 			</div>
 
-			{/* Área de Eliminar */}
 			<div
 				className={`absolute inset-y-0 right-0 bg-main-primary/70 text-white flex items-center justify-center transition-all duration-300`}
 				style={{

@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState } from "react";
+/* import { createContext, useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { db, auth } from "@services/firebase/config";
@@ -6,13 +6,13 @@ import { db, auth } from "@services/firebase/config";
 export const UserDataContext = createContext();
 
 export function UserDataProvider({ children }) {
-	const [user, setUser] = useState(null);
-	const [userAuth, setUserAuth] = useState({});
-	const [userData, setUserData] = useState({});
-	const [userFiles, setUserFiles] = useState({});
+    const [user, setUser] = useState(null);
+    const [userAuth, setUserAuth] = useState({});
+    const [userData, setUserData] = useState({});
+    const [userFiles, setUserFiles] = useState({});
     const [loading, setLoading] = useState(true);
 
-	const [state, setState] = useState({
+    const [state, setState] = useState({
         gastos: [],
         loading: true,
         isModalOpen: false,
@@ -27,49 +27,49 @@ export function UserDataProvider({ children }) {
         error: "",
     });
 
-	useEffect(() => {
-		const unsubscribe = onAuthStateChanged(auth, async (userFirebase) => {
-			if (userFirebase) {
-				setUser(userFirebase);
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (userFirebase) => {
+            if (userFirebase) {
+                setUser(userFirebase);
 
-				const userID = userFirebase.uid;
-				const docRefAuth = doc(db, `userAuth/${userID}`);
+                const userID = userFirebase.uid;
+                const docRefAuth = doc(db, `userAuth/${userID}`);
 
-				// Cargar userAuth
-				const authDetail = await getDoc(docRefAuth);
-				setUserAuth(authDetail.data() || null);
-			} else {
-				setUser(null);
-				setUserAuth(null);
-				setUserData(null);
-			}
+                // Cargar userAuth
+                const authDetail = await getDoc(docRefAuth);
+                setUserAuth(authDetail.data() || null);
+            } else {
+                setUser(null);
+                setUserAuth(null);
+                setUserData(null);
+            }
             setLoading(false);
-		});
+        });
 
-		return () => unsubscribe(); // Limpiar el suscriptor al desmontar
-	}, []);
+        return () => unsubscribe(); // Limpiar el suscriptor al desmontar
+    }, []);
 
-	useEffect(() => {
-		const loadUserData = async () => {
-			if (userAuth && userAuth.username) {
-				const docRefData = doc(db, `userData/${userAuth.username}`);
-				const dataDetail = await getDoc(docRefData);
-				const data = dataDetail.data() || null;
-				setUserData(data);
+    useEffect(() => {
+        const loadUserData = async () => {
+            if (userAuth && userAuth.username) {
+                const docRefData = doc(db, `userData/${userAuth.username}`);
+                const dataDetail = await getDoc(docRefData);
+                const data = dataDetail.data() || null;
+                setUserData(data);
 
-				// Verificar si el usuario tiene definido el corte del día (cutoddDay)
-				const cutoddDay = data?.cutoddDay || 12; // Si no está definido, usar 12
-				setState(prevState => ({
-					...prevState,
-					cutoddDay, // Almacenar el corte en el estado
-				}));
-			}
-		};
+                // Verificar si el usuario tiene definido el corte del día (cutoddDay)
+                const cutoddDay = data?.cutoddDay || 12; // Si no está definido, usar 12
+                setState(prevState => ({
+                    ...prevState,
+                    cutoddDay, // Almacenar el corte en el estado
+                }));
+            }
+        };
 
-		loadUserData();
-	}, [userAuth]);
+        loadUserData();
+    }, [userAuth]);
 
-	useEffect(() => {
+    useEffect(() => {
         const fetchGastos = async () => {
             const day = new Date().getDate(); // Cambiado a getDate() para obtener el día del mes
             const year = new Date().getFullYear();
@@ -187,10 +187,167 @@ export function UserDataProvider({ children }) {
         fetchGastos();
     }, [userAuth, state.cutoddDay]); // Dependencia de cutoddDay
 
-	return (
-		<UserDataContext.Provider value={{ user, userAuth, userData, userFiles, state, setState, loading }}>
-			{children}
-		</UserDataContext.Provider>
-	);
+    return (
+        <UserDataContext.Provider value={{ user, userAuth, userData, userFiles, state, setState, loading }}>
+            {children}
+        </UserDataContext.Provider>
+    );
 }
 
+ */
+
+import { createContext, useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { db, auth } from "@services/firebase/config";
+
+export const UserDataContext = createContext();
+
+export function UserDataProvider({ children }) {
+    const [user, setUser] = useState(null);
+    const [userAuth, setUserAuth] = useState({});
+    const [userData, setUserData] = useState({});
+    const [userFiles, setUserFiles] = useState({});
+    const [loading, setLoading] = useState(true);
+
+    const [state, setState] = useState({
+        gastos: [],
+        loading: true,
+        isModalOpen: false,
+        gasto: "",
+        title: "",
+        remarks: "",
+        type: "",
+        category: "",
+        file: null,
+        date: new Date().toISOString().substring(0, 10),
+        isSubmitting: false,
+        error: "",
+        filterByPeriod: false, // Control para alternar entre todos o periodo específico
+        period: "",
+    });
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (userFirebase) => {
+            if (userFirebase) {
+                setUser(userFirebase);
+
+                const userID = userFirebase.uid;
+                const docRefAuth = doc(db, `userAuth/${userID}`);
+
+                // Cargar userAuth
+                const authDetail = await getDoc(docRefAuth);
+                setUserAuth(authDetail.data() || null);
+            } else {
+                setUser(null);
+                setUserAuth(null);
+                setUserData(null);
+            }
+            setLoading(false);
+        });
+
+        return () => unsubscribe(); // Limpiar el suscriptor al desmontar
+    }, []);
+
+    useEffect(() => {
+        const loadUserData = async () => {
+            if (userAuth && userAuth.username) {
+                const docRefData = doc(db, `userData/${userAuth.username}`);
+                const dataDetail = await getDoc(docRefData);
+                const data = dataDetail.data() || null;
+                setUserData(data);
+
+                const cutoddDay = data?.cutoddDay || 12; // Si no está definido, usar 12
+                setState((prevState) => ({
+                    ...prevState,
+                    cutoddDay,
+                }));
+            }
+        };
+
+        loadUserData();
+    }, [userAuth]);
+
+    /* useEffect(() => {
+        const fetchGastos = async () => {
+            let gastosRef;
+            const { filterByPeriod, period, cutoddDay } = state;
+            const year = new Date().getFullYear();
+            const month = new Date().getMonth();
+            const day = new Date().getDate();
+
+            if (filterByPeriod && period) {
+                // Calcular fechas basadas en `cutoddDay` y `period`
+                const startDate = new Date(year, month - (day < cutoddDay ? 1 : 0), cutoddDay);
+                const endDate = new Date(year, month + 1 - (day < cutoddDay ? 0 : 1), cutoddDay - 1, 23, 59, 59);
+
+                gastosRef = collection(db, "userPosts", userAuth.username, "gastos", `${year}`, period);
+            } else {
+                // Sin filtrar por fechas (cargar todos los gastos)
+                gastosRef = collection(db, "userPosts", userAuth.username, "gastos");
+            }
+
+            try {
+                const q = filterByPeriod
+                    ? query(gastosRef, where("createdAt", ">=", startDate), where("createdAt", "<=", endDate))
+                    : query(gastosRef);
+
+                const gastosSnapshot = await getDocs(q);
+                const gastosList = gastosSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+                setState((prev) => ({ ...prev, gastos: gastosList, loading: false }));
+            } catch (error) {
+                setState((prev) => ({ ...prev, loading: false, error: "Error al obtener los gastos." }));
+            }
+        };
+
+        if (userAuth && userAuth.username) {
+            fetchGastos();
+        }
+    }, [userAuth, state.filterByPeriod, state.period]); */
+
+    useEffect(() => {
+        const fetchGastos = async () => {
+            let gastosRef;
+            const year = new Date().getFullYear();
+            const { filterByPeriod, period, cutoddDay } = state;
+
+            if (filterByPeriod && period) {
+                const startDate = new Date(year, new Date().getMonth(), cutoddDay);
+                const endDate = new Date(year, new Date().getMonth() + 1, cutoddDay - 1, 23, 59, 59);
+
+                gastosRef = collection(db, "userPosts", userAuth.username, "gastos", `${year}`, period);
+            } else {
+                gastosRef = collection(db, "userPosts", userAuth.username, "gastos");
+            }
+
+            try {
+                const q = filterByPeriod
+                    ? query(gastosRef, where("createdAt", ">=", startDate), where("createdAt", "<=", endDate))
+                    : query(gastosRef);
+
+                const gastosSnapshot = await getDocs(q);
+                const gastosList = gastosSnapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    createdAt: doc.data().createdAt.toDate(), // Asegurar que sea un Date
+                }));
+                //console.log("Gastos cargados:", gastosList);
+
+                setState((prev) => ({ ...prev, gastos: gastosList, loading: false }));
+            } catch (error) {
+                console.error("Error al obtener los gastos:", error);
+                setState((prev) => ({ ...prev, loading: false, error: "Error al obtener los gastos." }));
+            }
+        };
+
+        if (userAuth && userAuth.username) {
+            fetchGastos();
+        }
+    }, [userAuth, state.filterByPeriod, state.period]);
+
+    return (
+        <UserDataContext.Provider value={{ user, userAuth, userData, userFiles, state, setState, loading }}>
+            {children}
+        </UserDataContext.Provider>
+    );
+}

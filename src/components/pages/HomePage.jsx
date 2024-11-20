@@ -437,32 +437,33 @@ export default function HomePage() {
                 </div>
             </section> */}
 
-            <section className="w-full max-w-screen-sm py-3">
-                <h2 className="text-main-dark text-lg font-semibold mb-4">Resumen Mensual</h2>
+            {filteredGastos.length > 0 &&
+                <section className="w-full max-w-screen-sm py-3">
+                    <h2 className="text-main-dark text-lg font-semibold mb-4">Resumen Mensual</h2>
 
-                <aside className="w-full flex flex-wrap items-start gap-[4%]">
-                    <div className="w-[48%] max-w-[300px] aspect-square mb-4">
-                        <div className="bg-main-dark/5 p-4 rounded-3xl h-full flex flex-col items-start">
-                            <div className="flex-grow flex-center w-full pr-12">
-                                <Pie
-                                    data={categoryChartData}
-                                    options={{
-                                        cutout: '35%',
-                                        plugins: {
-                                            tooltip: {
-                                                callbacks: {
-                                                    label: (tooltipItem) => {
-                                                        return `${categoryLabels[tooltipItem.dataIndex]}: $${categoryValues[tooltipItem.dataIndex].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    <aside className="w-full flex flex-wrap items-start gap-[4%]">
+                        <div className="w-[48%] max-w-[300px] aspect-square mb-4">
+                            <div className="bg-main-dark/5 p-4 rounded-3xl h-full flex flex-col items-start">
+                                <div className="flex-grow flex-center w-full pr-12">
+                                    <Pie
+                                        data={categoryChartData}
+                                        options={{
+                                            cutout: '35%',
+                                            plugins: {
+                                                tooltip: {
+                                                    callbacks: {
+                                                        label: (tooltipItem) => {
+                                                            return `${categoryLabels[tooltipItem.dataIndex]}: $${categoryValues[tooltipItem.dataIndex].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                                        }
                                                     }
+                                                },
+                                                legend: {
+                                                    display: false,
                                                 }
-                                            },
-                                            legend: {
-                                                display: false,
                                             }
-                                        }
-                                    }}
-                                />
-                                {/* <Pie
+                                        }}
+                                    />
+                                    {/* <Pie
                                     data={categoryChartData}
                                     options={{
                                         cutout: '50%', // Esto convierte el gráfico de pie en una dona
@@ -481,33 +482,33 @@ export default function HomePage() {
                                     }}
                                 /> */}
 
-                            </div>
-                            <p className="text-main-dark text-center sm:text-left flex flex-col items-start font-light uppercase text-xs mt-2">
-                                Gastos por<span className="font-semibold text-base text-main-primary">Categoría</span>
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Total por Categoría */}
-                    <div className="w-[48%] max-w-[300px] aspect-square">
-                        <div className="bg-main-dark/5 p-4 rounded-3xl h-full flex items-center">
-                            <div className="space-y-1 w-full">
-                                {categoryLabels.map((category, index) => (
-                                    <div key={category} className="flex justify-between items-center border-b border-main-dark/20">
-                                        <span className="text-xs font-light capitalize text-main-dark" style={{ color: categoryChartData.datasets[0].backgroundColor[index] }}>
-                                            {category}
-                                        </span>
-                                        <span className="text-sm text-main-highlight" style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}>
-                                            ${categoryValues[index].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </span>
-                                    </div>
-                                ))}
+                                </div>
+                                <p className="text-main-dark text-center sm:text-left flex flex-col items-start font-light uppercase text-xs mt-2">
+                                    Gastos por<span className="font-semibold text-base text-main-primary">Categoría</span>
+                                </p>
                             </div>
                         </div>
-                    </div>
-                </aside>
 
-                {/* <aside className="w-full flex flex-wrap items-start">
+                        {/* Total por Categoría */}
+                        <div className="w-[48%] max-w-[300px] aspect-square">
+                            <div className="bg-main-dark/5 p-4 rounded-3xl h-full flex items-center">
+                                <div className="space-y-1 w-full">
+                                    {categoryLabels.map((category, index) => (
+                                        <div key={category} className="flex justify-between items-center border-b border-main-dark/20">
+                                            <span className="text-xs font-light capitalize text-main-dark" style={{ color: categoryChartData.datasets[0].backgroundColor[index] }}>
+                                                {category}
+                                            </span>
+                                            <span className="text-sm text-main-highlight" style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}>
+                                                ${categoryValues[index].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+
+                    {/* <aside className="w-full flex flex-wrap items-start">
                     <div className="w-[48%] max-w-[300px] aspect-square mb-4 pr-2">
                         <div className="bg-main-dark/5 p-4 rounded-3xl h-full flex flex-col items-start">
                             <div className="flex-grow flex-center w-full pr-12">
@@ -561,113 +562,115 @@ export default function HomePage() {
                     </div>
                 </aside> */}
 
-                <aside className="w-full flex flex-wrap items-start gap-[4%]">
-                    {paymentLabels.map((paymentType, index) => (
-                        <div key={paymentType} className="w-[48%] max-w-[300px] mb-4">
-                            <div className="bg-main-dark/5 py-2 px-4 rounded-3xl h-full flex flex-col items-start">
-                                {/* Tarjeta con el total de cada tipo de pago */}
-                                <div className="flex-grow flex-center gap-2 w-full">
-                                    <i className="flex-center w-9 h-9">
-                                        {
-                                            paymentType === 'cash' && ICONS.money.border(paymentChartData.datasets[0].backgroundColor[index]) ||
-                                            paymentType === 'other' && ICONS.bitcoin.border(paymentChartData.datasets[0].backgroundColor[index]) ||
-                                            ICONS.credit_card.border(paymentChartData.datasets[0].backgroundColor[index])
-                                        }
-                                    </i>
-                                    <p className="flex flex-col items-start w-full py-1">
-                                        <span
-                                            className="text-xs font-light capitalize text-main-dark leading-4"
-                                            style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}
-                                        >
-                                            {paymentType === 'card1' && userData.paymentTypes.card1}
-                                            {paymentType === 'card2' && userData.paymentTypes.card2}
-                                            {paymentType === 'card3' && userData.paymentTypes.card3}
-                                            {paymentType === 'card4' && userData.paymentTypes.card4}
-                                            {paymentType === 'card5' && userData.paymentTypes.card5}
-                                            {paymentType === 'other' && userData.paymentTypes.other}
-                                            {paymentType === 'cash' && 'Efectivo'}
-                                        </span>
-                                        <span
-                                            className="text-xl font-semibold text-main-dark leading-4"
-                                        //style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}
-                                        >
-                                            ${paymentValues[index].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </span>
-                                    </p>
+                    <aside className="w-full flex flex-wrap items-start gap-[4%]">
+                        {paymentLabels.map((paymentType, index) => (
+                            <div key={paymentType} className="w-[48%] max-w-[300px] mb-4">
+                                <div className="bg-main-dark/5 py-2 px-4 rounded-3xl h-full flex flex-col items-start">
+                                    {/* Tarjeta con el total de cada tipo de pago */}
+                                    <div className="flex-grow flex-center gap-2 w-full">
+                                        <i className="flex-center w-9 h-9">
+                                            {
+                                                paymentType === 'cash' && ICONS.money.border(paymentChartData.datasets[0].backgroundColor[index]) ||
+                                                paymentType === 'other' && ICONS.bitcoin.border(paymentChartData.datasets[0].backgroundColor[index]) ||
+                                                ICONS.credit_card.border(paymentChartData.datasets[0].backgroundColor[index])
+                                            }
+                                        </i>
+                                        <p className="flex flex-col items-start w-full py-1">
+                                            <span
+                                                className="text-xs font-light capitalize text-main-dark leading-4"
+                                                style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}
+                                            >
+                                                {paymentType === 'card1' && userData.paymentTypes.card1}
+                                                {paymentType === 'card2' && userData.paymentTypes.card2}
+                                                {paymentType === 'card3' && userData.paymentTypes.card3}
+                                                {paymentType === 'card4' && userData.paymentTypes.card4}
+                                                {paymentType === 'card5' && userData.paymentTypes.card5}
+                                                {paymentType === 'other' && userData.paymentTypes.other}
+                                                {paymentType === 'cash' && 'Efectivo'}
+                                            </span>
+                                            <span
+                                                className="text-xl font-semibold text-main-dark leading-4"
+                                            //style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}
+                                            >
+                                                ${paymentValues[index].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
-                </aside>
+                        ))}
+                    </aside>
 
-                <div className="w-full flex flex-wrap items-stretch gap-[4%]">
-                    <div className={`bg-main-dark/5 rounded-3xl p-4 flex justify-between ${percentSpent < 0 ? 'flex-col items-start w-[48%] max-w-[300px]' : 'w-full items-center'}`}>
-                        <span className="text-main-dark">Presupuesto</span>
-                        <span className="text-main-dark font-semibold"> {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalBudget)}
-                        </span>
-                    </div>
-                    <div className={`bg-main-dark/5 rounded-3xl p-4 flex justify-between ${percentSpent < 0 ? 'flex-col items-start  w-[48%] max-w-[300px]' : 'w-full items-center mt-4'}`}>
-                        <span className="text-main-dark">Gastos Totales</span>
-                        <span className="text-main-dark font-semibold">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-                </div>
-
-                <div className="w-full flex flex-wrap items-stretch gap-[4%] mt-4">
-                    <div className={`${(totalSpent) < 0 ? 'bg-main-dark/20' : 'bg-main-dark/5'} ${percentSpent < 0 ? 'w-[48%] max-w-[300px]' : 'w-full'} bg-main-dark/20 rounded-3xl p-4 flex justify-between items-center`}>
-                        <span className="text-main-dark">Saldo Actual</span>
-                        <span className={`${totalSpent < 0 ? 'text-main-primary' : 'text-main-highlight'} font-semibold`}>
-                            {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalSpent)}
-                        </span>
-                    </div>
-
-                    {percentSpent < 0 &&
-                        <div className="w-[48%] max-w-[300px] bg-main-primary/20 rounded-3xl p-4 flex items-center justify-between gap-1
-                    opacity-0 transform scale-95 transition-all duration-500 ease-out motion-safe:animate-fade-in">
-                            <i className="flex-center w-6 h-6">{ICONS.alert.border("#C2185B")}</i>
-                            <span className="text-sm text-main-primary">
-                                Has gastado
-                                <span className="text-base font-semibold text-main-primary">
-                                    {` ${percentSpent.toFixed(2)}% `}
-                                </span>
-                                más de lo que deberías este mes.
+                    <div className="w-full flex flex-wrap items-stretch gap-[4%]">
+                        <div className={`bg-main-dark/5 rounded-3xl p-4 flex justify-between ${percentSpent < 0 ? 'flex-col items-start w-[48%] max-w-[300px]' : 'w-full items-center'}`}>
+                            <span className="text-main-dark">Presupuesto</span>
+                            <span className="text-main-dark font-semibold"> {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalBudget)}
                             </span>
                         </div>
-                    }
-                </div>
-            </section>
+                        <div className={`bg-main-dark/5 rounded-3xl p-4 flex justify-between ${percentSpent < 0 ? 'flex-col items-start  w-[48%] max-w-[300px]' : 'w-full items-center mt-4'}`}>
+                            <span className="text-main-dark">Gastos Totales</span>
+                            <span className="text-main-dark font-semibold">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                    </div>
+
+                    <div className="w-full flex flex-wrap items-stretch gap-[4%] mt-4">
+                        <div className={`${(totalSpent) < 0 ? 'bg-main-dark/20' : 'bg-main-dark/5'} ${percentSpent < 0 ? 'w-[48%] max-w-[300px]' : 'w-full'} bg-main-dark/20 rounded-3xl p-4 flex justify-between items-center`}>
+                            <span className="text-main-dark">Saldo Actual</span>
+                            <span className={`${totalSpent < 0 ? 'text-main-primary' : 'text-main-highlight'} font-semibold`}>
+                                {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalSpent)}
+                            </span>
+                        </div>
+
+                        {percentSpent < 0 &&
+                            <div className="w-[48%] max-w-[300px] bg-main-primary/20 rounded-3xl p-4 flex items-center justify-between gap-1
+                    opacity-0 transform scale-95 transition-all duration-500 ease-out motion-safe:animate-fade-in">
+                                <i className="flex-center w-6 h-6">{ICONS.alert.border("#C2185B")}</i>
+                                <span className="text-sm text-main-primary">
+                                    Has gastado
+                                    <span className="text-base font-semibold text-main-primary">
+                                        {` ${percentSpent.toFixed(2)}% `}
+                                    </span>
+                                    más de lo que deberías este mes.
+                                </span>
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
 
             {/* Sección de Últimos Gastos */}
-            <section className="w-full max-w-screen-sm py-3 mb-20">
-                <h2 className="text-main-dark text-lg font-semibold mb-4">Últimos Gastos</h2>
-                <ul className="space-y-3">
-                    {state.loading ? (
-                        <Spinner bgTheme={true} />
-                    ) : filteredGastos.length > 0 ? (
-                        filteredGastos
-                            .sort((a, b) => {
-                                const dateA = a.createdAt instanceof Date ? a.createdAt : a.createdAt.toDate();
-                                const dateB = b.createdAt instanceof Date ? b.createdAt : b.createdAt.toDate();
-                                return dateB.getTime() - dateA.getTime(); // Ordenar por fecha descendente
-                            })
-                            .slice(0, 6) // Mostrar los primeros 6
-                            .map((gasto) => (
-                                <SwipeableCard
-                                    key={gasto.id}
-                                    context={userData}
-                                    data={gasto}
-                                    onEdit={() => handleEdit(gasto.id)}
-                                    onDelete={() => handleDelete(gasto.id)}
-                                    expandedGastoId={expandedGastoId}
-                                    onCardClick={handleCardClick}
-                                />
-                            ))
-                    ) : (
-                        <li className="flex justify-between items-center bg-main-dark/5 rounded-3xl p-4">
-                            <span className="text-main-dark font-medium">No hay gastos registrados</span>
-                        </li>
-                    )}
-                </ul>
-            </section>
+            {filteredGastos.length > 0 &&
+                <section className="w-full max-w-screen-sm py-3 mb-20">
+                    <h2 className="text-main-dark text-lg font-semibold mb-4">Últimos Gastos</h2>
+                    <ul className="space-y-3">
+                        {state.loading ? (
+                            <Spinner bgTheme={true} />
+                        ) : filteredGastos.length > 0 ? (
+                            filteredGastos
+                                .sort((a, b) => {
+                                    const dateA = a.createdAt instanceof Date ? a.createdAt : a.createdAt.toDate();
+                                    const dateB = b.createdAt instanceof Date ? b.createdAt : b.createdAt.toDate();
+                                    return dateB.getTime() - dateA.getTime(); // Ordenar por fecha descendente
+                                })
+                                .slice(0, 6) // Mostrar los primeros 6
+                                .map((gasto) => (
+                                    <SwipeableCard
+                                        key={gasto.id}
+                                        context={userData}
+                                        data={gasto}
+                                        onEdit={() => handleEdit(gasto.id)}
+                                        onDelete={() => handleDelete(gasto.id)}
+                                        expandedGastoId={expandedGastoId}
+                                        onCardClick={handleCardClick}
+                                    />
+                                ))
+                        ) : (
+                            <li className="flex justify-between items-center bg-main-dark/5 rounded-3xl p-4">
+                                <span className="text-main-dark font-medium">No hay gastos registrados</span>
+                            </li>
+                        )}
+                    </ul>
+                </section>}
 
             {
                 state.isModalOpen && (

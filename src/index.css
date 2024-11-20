@@ -3,41 +3,44 @@
 @tailwind utilities;
 
 * {
-    font-family: "Raleway", sans-serif;
-    scrollbar-width: none;
+	font-family: "Raleway", sans-serif;
+	scrollbar-width: none;
+	body {
+		background: #f5f6fa;
+	}
 }
 
 .flex-center {
-    @apply flex items-center justify-center
+	@apply flex items-center justify-center;
 }
 
 .text-border-highlight {
-    -webkit-text-stroke: 1px #00A86B;
+	-webkit-text-stroke: 1px #00a86b;
 }
 
 .animate-spin-reverse {
-    animation-name: animate-spin-reverse;
-    animation-duration: 1s;
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
+	animation-name: animate-spin-reverse;
+	animation-duration: 1s;
+	animation-timing-function: linear;
+	animation-iteration-count: infinite;
 }
 
 input::placeholder {
-    color: #00a86a8e;
-    /* Color por defecto del placeholder */
+	color: #00a86a8e;
+	/* Color por defecto del placeholder */
 }
 
 input:focus::placeholder {
-    color: #00A86B;
-    /* Color del placeholder al enfocar */
+	color: #00a86b;
+	/* Color del placeholder al enfocar */
 }
 
 @keyframes animate-spin-reverse {
-    from {
-        transform: rotate(360deg);
-    }
+	from {
+		transform: rotate(360deg);
+	}
 
-    to {
-        transform: rotate(0deg);
-    }
+	to {
+		transform: rotate(0deg);
+	}
 }

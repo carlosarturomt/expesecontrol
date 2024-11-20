@@ -12,11 +12,8 @@ import { FilterButton } from "../atoms/Button";
 export default function TransactionsPage() {
     const { isLoading, isAuthenticated } = useAuthRequired("/register", "/transactions");
     const { loading, userAuth, userData, state, setState } = useContext(UserDataContext);
-    const [totalGastos, setTotalGastos] = useState(0);
     const [expandedGastoId, setExpandedGastoId] = useState(null);
-    const [filteredData, setFilteredData] = useState([]);
     const [filterText, setFilterText] = useState('');
-    const [filteredGastoss, setFilteredGastoss] = useState([]);
 
 
     useEffect(() => {
@@ -53,16 +50,7 @@ export default function TransactionsPage() {
             return gastoDate >= startDate && gastoDate <= endDate;
         });
 
-        console.log("Gastos filtrados:", gastosFiltrados);
 
-        setFilteredGastoss(gastosFiltrados);
-
-        // Calcular el total
-        const total = gastosFiltrados.reduce(
-            (acc, gasto) => acc + (parseFloat(gasto.gasto) || 0),
-            0
-        );
-        setTotalGastos(total);
     }, [state.gastos, userData, loading]);
 
 
@@ -90,24 +78,6 @@ export default function TransactionsPage() {
         if (value !== undefined) {
             setFilterText(value);
         }
-
-        let filtered = state.gastos;
-
-        // Filtrar por texto
-        if (filterText) {
-            filtered = filtered.filter(gasto =>
-                gasto.title.toLowerCase().includes(filterText.toLowerCase()) ||
-                gasto.category.toLowerCase().includes(filterText.toLowerCase()) ||
-                gasto.remarks.toLowerCase().includes(filterText.toLowerCase())
-            );
-        }
-
-        // Filtrar por categoría
-        if (value && value !== "Todos") {
-            filtered = filtered.filter(gasto => gasto.category === value || (value === "null" && gasto.category == null));
-        }
-
-        setFilteredData(filtered);
     };
 
     const items_filter = [
@@ -207,8 +177,6 @@ export default function TransactionsPage() {
         }
     };
 
-
-    const openModal = () => setState(prev => ({ ...prev, isModalOpen: true }));
     const closeModal = () => setState(prev => ({ ...prev, isModalOpen: false }));
 
     const formatCurrency = (value) => {
@@ -426,39 +394,40 @@ export default function TransactionsPage() {
 
             {/* Sección de Últimos Gastos */}
             <section className="w-full max-w-screen-sm mb-20">
-                <hgroup className="mb-4">
+                <hgroup className="mb-2">
                     <h2 className="text-main-dark py-2 text-lg font-semibold border-b border-main-dark/20">Gastos</h2>
                     <p className="py-2 text-sm font-light text-main-dark/50">{filteredGastos.length} Resultados</p>
                 </hgroup>
 
-                {state.loading ? (
-                    <Spinner bgTheme={true} />
-                ) : filteredGastoss.length > 0 ? (
-                    filteredGastoss
-                        .sort((a, b) => {
-                            const dateA = a.createdAt instanceof Date ? a.createdAt : a.createdAt.toDate();
-                            const dateB = b.createdAt instanceof Date ? b.createdAt : b.createdAt.toDate();
-                            return dateB.getTime() - dateA.getTime(); // Ordenar por fecha descendente
-                        })
-                        .slice(0, 6) // Mostrar los primeros 6
-                        .map((gasto) => (
-                            <SwipeableCard
-                                key={gasto.id}
-                                context={userData}
-                                data={gasto}
-                                onEdit={() => handleEdit(gasto.id)}
-                                onDelete={() => handleDelete(gasto.id)}
-                                expandedGastoId={expandedGastoId}
-                                onCardClick={handleCardClick}
-                            />
-                        ))
-                ) : (
-                    <li className="flex justify-between items-center bg-main-dark/5 rounded-3xl p-4">
-                        <span className="text-main-dark font-medium">No hay gastos registrados</span>
-                    </li>
-                )}
+                <ul className="space-y-3">
+                    {state.loading ? (
+                        <Spinner bgTheme={true} />
+                    ) : filteredGastos.length > 0 ? (
+                        filteredGastos
+                            .sort((a, b) => {
+                                const dateA = a.createdAt instanceof Date ? a.createdAt : a.createdAt.toDate();
+                                const dateB = b.createdAt instanceof Date ? b.createdAt : b.createdAt.toDate();
+                                return dateB.getTime() - dateA.getTime(); // Ordenar por fecha descendente
+                            })
+                            .slice(0, 6) // Mostrar los primeros 6
+                            .map((gasto) => (
+                                <SwipeableCard
+                                    key={gasto.id}
+                                    context={userData}
+                                    data={gasto}
+                                    onEdit={() => handleEdit(gasto.id)}
+                                    onDelete={() => handleDelete(gasto.id)}
+                                    expandedGastoId={expandedGastoId}
+                                    onCardClick={handleCardClick}
+                                />
+                            ))
+                    ) : (
+                        <li className="flex justify-between items-center bg-main-dark/5 rounded-3xl p-4">
+                            <span className="text-main-dark font-medium">No hay gastos registrados</span>
+                        </li>
+                    )}
+                </ul>
             </section>
-
 
             {
                 state.isModalOpen && (

@@ -324,7 +324,7 @@ function SwipeableCard({ context, data, onEdit, onDelete, expandedGastoId, onCar
 										) ||
 										data.category == "personalCare" && (
 											<span className="flex-center gap-1">
-												<i className="w-4 h-4 flex-center">{ICONS.care.border("#F5F6FA")}</i>
+												<i className="w-4 h-4 flex-center">{ICONS.beauty.border("#F5F6FA")}</i>
 												Ropa y Cuidado Personal
 											</span>
 										) ||
@@ -338,6 +338,12 @@ function SwipeableCard({ context, data, onEdit, onDelete, expandedGastoId, onCar
 											<span className="flex-center gap-1">
 												<i className="w-4 h-4 flex-center">{ICONS.house.border("#F5F6FA")}</i>
 												Vivienda
+											</span>
+										) ||
+										data.category == "health" && (
+											<span className="flex-center gap-1">
+												<i className="w-4 h-4 flex-center">{ICONS.care.border("#F5F6FA")}</i>
+												Salud y Bienestear
 											</span>
 										)
 									}

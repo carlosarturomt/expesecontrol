@@ -335,7 +335,7 @@ export function UserDataProvider({ children }) {
 
                 setState((prev) => ({ ...prev, gastos: gastosList, loading: false }));
             } catch (error) {
-                console.error("Error al obtener los gastos:", error);
+                //console.error("Error al obtener los gastos:", error);
                 setState((prev) => ({ ...prev, loading: false, error: "Error al obtener los gastos." }));
             }
         };

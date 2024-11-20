@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db, storage } from "@services/firebase/config";
 import useAuthRequired from "@hooks/useAuthRequired";
 import { UserDataContext } from "@context/userDataContext";
@@ -409,7 +409,6 @@ export default function TransactionsPage() {
                                 const dateB = b.createdAt instanceof Date ? b.createdAt : b.createdAt.toDate();
                                 return dateB.getTime() - dateA.getTime(); // Ordenar por fecha descendente
                             })
-                            .slice(0, 6) // Mostrar los primeros 6
                             .map((gasto) => (
                                 <SwipeableCard
                                     key={gasto.id}

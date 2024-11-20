@@ -51,17 +51,14 @@ export default function HomePage() {
             59
         );
 
-        console.log("Rango de fechas:", { startDate, endDate });
-
         // Filtrar los gastos
         const gastosFiltrados = state.gastos.filter((gasto) => {
             const gastoDate = gasto.createdAt instanceof Date ? gasto.createdAt : gasto.createdAt.toDate();
-            console.log("GastoDate:", gastoDate, "Dentro del rango:", gastoDate >= startDate && gastoDate <= endDate);
+            //console.log("GastoDate:", gastoDate, "Dentro del rango:", gastoDate >= startDate && gastoDate <= endDate);
             return gastoDate >= startDate && gastoDate <= endDate;
         });
 
-        console.log("Gastos filtrados:", gastosFiltrados);
-
+        //console.log("Gastos filtrados:", gastosFiltrados);
         setFilteredGastos(gastosFiltrados);
 
         // Calcular el total
@@ -87,36 +84,6 @@ export default function HomePage() {
     const handleCardClick = (id) => {
         setExpandedGastoId(expandedGastoId === id ? null : id);
     };
-
-    /* const handleEdit = async (id) => {
-        try {
-            const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
-            const gastoSnap = await getDoc(gastoRef);
-
-            if (gastoSnap.exists()) {
-                const gastoData = gastoSnap.data();
-
-                setState((prev) => ({
-                    ...prev,
-                    gasto: gastoData.gasto || '',
-                    title: gastoData.title || '',
-                    remarks: gastoData.remarks || '',
-                    category: gastoData.category || '',
-                    type: gastoData.type || '',
-                    date: gastoData.createdAt
-                        ? gastoData.createdAt.toDate().toISOString().substring(0, 10)  // Formato ISO para <input type="date">
-                        : '',
-                    fileURL: gastoData.fileURL || '',
-                    isModalOpen: true,
-                    currentGastoId: id,  // Guarda el ID del gasto actual
-                }));
-            } else {
-                console.error("No se encontró el gasto para editar.");
-            }
-        } catch (error) {
-            console.error("Error al obtener los datos del gasto:", error);
-        }
-    }; */
 
     const handleEdit = async (id) => {
         try {
@@ -155,8 +122,6 @@ export default function HomePage() {
                 const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
                 await deleteDoc(gastoRef);
 
-                console.log(`Gasto con ID: ${id} eliminado.`);
-
                 // Actualiza el estado local en lugar de recargar la página
                 setState((prev) => ({
                     ...prev,
@@ -167,7 +132,6 @@ export default function HomePage() {
             }
         }
     };
-
 
     const openModal = () => setState(prev => ({ ...prev, isModalOpen: true }));
     const closeModal = () => setState(prev => ({ ...prev, isModalOpen: false }));
@@ -223,7 +187,7 @@ export default function HomePage() {
         }));
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmitExpense = async (e) => {
         e.preventDefault();
         setState(prev => ({ ...prev, isSubmitting: true }));
 
@@ -408,9 +372,6 @@ export default function HomePage() {
         return null;
     }
 
-    console.log('filteredGastos: ', filteredGastos);
-
-
     return (
         <div>
             {/* Sección de Gastos Totales */}
@@ -423,10 +384,15 @@ export default function HomePage() {
             </section>
 
             {/* Botones para Agregar Gastos */}
-            <section className="w-full max-w-screen-sm flex justify-between items-center gap-2 py-3 px-6">
-                <button onClick={openModal} className="w-full flex-center gap-1 text-sm font-semibold bg-main-highlight/70 text-white rounded-3xl p-3 transition-colors duration-200 hover:bg-main-primary-dark">
+            <section className="w-full max-w-screen-sm flex justify-between items-center gap-2 py-3">
+                <button onClick={openModal} className="w-full flex-center gap-1 text-sm font-semibold bg-main-primary/70 text-white rounded-3xl p-3 transition-colors duration-200 hover:bg-main-primary">
                     <i className="flex-center w-6 h-6 rounded-full hover:scale-105">{ICONS.plus.fill("#FFFFFF")}</i>
                     Agregar Gasto
+                </button>
+
+                <button onClick={() => alert('Ups! Estamos trabajando en esta función.')} className="w-full flex-center gap-1 text-sm font-semibold bg-main-highlight/70 text-white rounded-3xl p-3 transition-colors duration-200 hover:bg-main-highlight">
+                    <i className="flex-center w-6 h-6 rounded-full hover:scale-105">{ICONS.plus.fill("#FFFFFF")}</i>
+                    Agregar Ingreso
                 </button>
             </section>
 
@@ -496,7 +462,15 @@ export default function HomePage() {
                                     {categoryLabels.map((category, index) => (
                                         <div key={category} className="flex justify-between items-center border-b border-main-dark/20">
                                             <span className="text-xs font-light capitalize text-main-dark" style={{ color: categoryChartData.datasets[0].backgroundColor[index] }}>
-                                                {category}
+                                                {
+                                                    category == 'feeding' && 'Alimentación y Bebidas' ||
+                                                    category == 'transportation' && 'Transporte' ||
+                                                    category == 'personalCare' && 'Ropa y Cuidado Personal' ||
+                                                    category == 'entertainment' && 'Entretenimiento y Ocio' ||
+                                                    category == 'housing' && 'Vivienda' ||
+                                                    category == 'health' && 'Salud y Bienestear' ||
+                                                    category
+                                                }
                                             </span>
                                             <span className="text-sm text-main-highlight" style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}>
                                                 ${categoryValues[index].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -676,7 +650,7 @@ export default function HomePage() {
                 state.isModalOpen && (
                     <div className="fixed inset-0 bg-black/50 flex-center z-50">
                         <div className="bg-white rounded-lg max-w-lg w-full h-[85vh] relative overflow-hidden">
-                            <form onSubmit={handleSubmit} className="space-y-4">
+                            <form onSubmit={handleSubmitExpense} className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <button onClick={closeModal} className="p-2 text-main-primary">Cancelar</button>
 

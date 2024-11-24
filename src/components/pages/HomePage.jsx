@@ -1,28 +1,35 @@
 import { useContext, useEffect, useState } from "react";
-import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
-import { addDoc, collection, deleteDoc, doc, getDoc, updateDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { addDoc, collection, doc, updateDoc } from "firebase/firestore";
 import { db, storage } from "@services/firebase/config";
 import { UserDataContext } from "@context/userDataContext";
 import useAuthRequired from "@hooks/useAuthRequired";
 import { Spinner } from "@components/atoms/Spinner";
 import { ICONS } from "@assets/icons";
-import { SwipeableCard } from "@components/atoms/Button";
 
-import { Pie } from 'react-chartjs-2';
+import { Line, Pie } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
     ArcElement,
     Tooltip,
     Legend,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
 } from 'chart.js';
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,);
 
 export default function HomePage() {
     const { isAuthenticated } = useAuthRequired("/register", "/");
     const { loading, userAuth, userData, state, setState } = useContext(UserDataContext);
     const [totalGastos, setTotalGastos] = useState(0);
-    const [expandedGastoId, setExpandedGastoId] = useState(null);
     const [filteredGastos, setFilteredGastos] = useState([]);
 
     useEffect(() => {
@@ -80,80 +87,6 @@ export default function HomePage() {
         };
     }, [state.isModalOpen]);
 
-    const handleCardClick = (id) => {
-        setExpandedGastoId(expandedGastoId === id ? null : id);
-    };
-
-    const handleEdit = async (id) => {
-        try {
-            const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
-            const gastoSnap = await getDoc(gastoRef);
-
-            if (gastoSnap.exists()) {
-                const gastoData = gastoSnap.data();
-
-                setState((prev) => ({
-                    ...prev,
-                    gasto: gastoData?.gasto || '',
-                    title: gastoData?.title || '',
-                    remarks: gastoData?.remarks || '',
-                    category: gastoData?.category || '',
-                    type: gastoData?.type || '',
-                    date: gastoData?.createdAt
-                        ? gastoData.createdAt.toDate().toISOString().substring(0, 10)
-                        : '',
-                    image: {
-                        imageURL: gastoData?.fileURL,
-                        name: gastoData?.name
-                    },
-                    isModalOpen: true,
-                    currentGastoId: id,
-                }));
-            } else {
-                console.error(`El gasto con ID: ${id} no existe.`);
-            }
-        } catch (error) {
-            console.error("Error al obtener los datos del gasto:", error);
-        }
-    };
-
-    const handleDelete = async (id, gasto, imageName) => {
-        const confirmDelete = window.confirm(
-            `¿Estás seguro de que deseas eliminar el gasto "${gasto.title}" de $${gasto.gasto}?`
-        );
-
-        if (confirmDelete) {
-            try {
-                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
-
-                // Verificar que imageName esté definido y no vacío antes de intentar eliminar la imagen
-                if (imageName && imageName.trim() !== "") {
-                    const storageRef = ref(storage, `userFiles/${userAuth.username}/${imageName}`);
-                    try {
-                        await deleteObject(storageRef);
-                        console.log("Imagen asociada eliminada de Storage.");
-                    } catch (error) {
-                        console.error("Error al eliminar la imagen de Storage: ", error);
-                    }
-                } else {
-                    console.log("No se proporcionó una imagen para eliminar.");
-                }
-
-                // Elimina el documento del gasto en Firestore
-                await deleteDoc(gastoRef);
-                console.log("Gasto eliminado correctamente.");
-
-                // Actualiza el estado local en lugar de recargar la página
-                setState((prev) => ({
-                    ...prev,
-                    gastos: prev.gastos.filter((g) => g.id !== id), // Filtra el gasto eliminado
-                }));
-            } catch (error) {
-                console.error("Error al eliminar el gasto: ", error);
-                alert("No se pudo eliminar el gasto. Intenta nuevamente.");
-            }
-        }
-    };
 
     const openModal = () => setState(prev => ({ ...prev, isModalOpen: true }));
     const closeModal = () => setState(prev => ({ ...prev, isModalOpen: false }));
@@ -473,24 +406,6 @@ export default function HomePage() {
                                             }
                                         }}
                                     />
-                                    {/* <Pie
-                                    data={categoryChartData}
-                                    options={{
-                                        cutout: '50%', // Esto convierte el gráfico de pie en una dona
-                                        plugins: {
-                                            tooltip: {
-                                                callbacks: {
-                                                    label: (tooltipItem) => {
-                                                        return `${categoryLabels[tooltipItem.dataIndex]}: $${categoryValues[tooltipItem.dataIndex].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                                    }
-                                                }
-                                            },
-                                            legend: {
-                                                display: false,
-                                            }
-                                        }
-                                    }}
-                                /> */}
 
                                 </div>
                                 <p className="text-main-dark text-center sm:text-left flex flex-col items-start font-light uppercase text-xs mt-2">
@@ -525,60 +440,6 @@ export default function HomePage() {
                             </div>
                         </div>
                     </aside>
-
-                    {/* <aside className="w-full flex flex-wrap items-start">
-                    <div className="w-[48%] max-w-[300px] aspect-square mb-4 pr-2">
-                        <div className="bg-main-dark/5 p-4 rounded-3xl h-full flex flex-col items-start">
-                            <div className="flex-grow flex-center w-full pr-12">
-                                <Pie
-                                    data={paymentChartData}
-                                    options={{
-                                        plugins: {
-                                            tooltip: {
-                                                callbacks: {
-                                                    label: (tooltipItem) => {
-                                                        return `${paymentLabels[tooltipItem.dataIndex]}: $${paymentValues[tooltipItem.dataIndex].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                                    }
-                                                }
-                                            },
-                                            legend: {
-                                                display: false,
-                                            }
-                                        }
-                                    }}
-                                />
-                            </div>
-                            <p className="text-main-dark text-center sm:text-left flex flex-col items-start font-light uppercase text-xs mt-2">
-                                Gastos por <span className="font-semibold text-base text-main-highlight">Tipo de pago</span>
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="w-1/2 max-w-[300px] aspect-square sm:mt-0 pl-2">
-                        <div className="bg-main-dark/5 p-4 rounded-3xl h-full flex items-center">
-                            <div className="space-y-1 w-full">
-                                {paymentLabels.map((paymentType, index) => (
-                                    <div key={paymentType} className="flex justify-between items-center border-b border-main-dark/20">
-                                        <span className="text-xs font-light capitalize text-main-dark" style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}>
-                                            {
-                                            paymentType == 'card1'  && userData.paymentTypes.card1 ||
-                                            paymentType == 'card2'  && userData.paymentTypes.card2 ||
-                                            paymentType == 'card3'  && userData.paymentTypes.card3 ||
-                                            paymentType == 'card4'  && userData.paymentTypes.card4 ||
-                                            paymentType == 'card5'  && userData.paymentTypes.card5 ||
-                                            paymentType == 'other'  && userData.paymentTypes.other ||
-                                            paymentType == 'cash'  && 'Efectivo'
-                                            }
-                                        </span>
-                                        <span className="text-sm text-main-highlight" style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}>
-                                            ${paymentValues[index].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </aside> */}
 
                     <aside className="w-full flex flex-wrap items-start gap-[4%]">
                         {paymentLabels.map((paymentType, index) => (
@@ -619,7 +480,7 @@ export default function HomePage() {
                         ))}
                     </aside>
 
-                    <div className="w-full flex flex-wrap items-stretch gap-[4%]">
+                    <aside className="w-full flex flex-wrap items-stretch gap-[4%]">
                         <div className={`bg-main-dark/5 rounded-3xl p-4 flex justify-between ${percentSpent < 0 ? 'flex-col items-start w-[48%] max-w-[300px]' : 'w-full items-center'}`}>
                             <span className="text-main-dark">Presupuesto</span>
                             <span className="text-main-dark font-semibold"> {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalBudget)}
@@ -629,9 +490,9 @@ export default function HomePage() {
                             <span className="text-main-dark">Gastos Totales</span>
                             <span className="text-main-dark font-semibold">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
-                    </div>
+                    </aside>
 
-                    <div className="w-full flex flex-wrap items-stretch gap-[4%] mt-4">
+                    <aside className="w-full flex flex-wrap items-stretch gap-[4%] my-4">
                         <div className={`${(totalSpent) < 0 ? 'bg-main-dark/20' : 'bg-main-dark/5'} ${percentSpent < 0 ? 'w-[48%] max-w-[300px]' : 'w-full'} bg-main-dark/20 rounded-3xl p-4 flex justify-between items-center`}>
                             <span className="text-main-dark">Saldo Actual</span>
                             <span className={`${totalSpent < 0 ? 'text-main-primary' : 'text-main-highlight'} font-semibold`}>
@@ -652,12 +513,64 @@ export default function HomePage() {
                                 </span>
                             </div>
                         }
-                    </div>
+                    </aside>
+
+                    <aside className="w-full aspect-auto mb-16">
+                        <div className="w-full bg-main-dark/5 p-4 rounded-3xl h-full flex flex-col items-start">
+                            <div className="w-full flex-grow flex justify-center">
+                                <Line
+                                    data={{
+                                        labels: categoryLabels, // Las etiquetas de las categorías (por ejemplo, meses, tipos de gasto, etc.)
+                                        datasets: [{
+                                            label: 'Gastos por Categoría',
+                                            data: categoryValues, // Los valores de los gastos por categoría
+                                            borderColor: '#4D8EF6', // Color de la línea (puedes ajustarlo)
+                                            backgroundColor: 'rgba(77, 143, 246, 0.2)', // Color de fondo de la línea
+                                            fill: true, // Hacer el área debajo de la línea rellena
+                                            tension: 0.4, // Suavizado de la línea
+                                        }]
+                                    }}
+                                    options={{
+                                        responsive: true,
+                                        plugins: {
+                                            tooltip: {
+                                                callbacks: {
+                                                    label: (tooltipItem) => {
+                                                        return `${categoryLabels[tooltipItem.dataIndex]}: $${categoryValues[tooltipItem.dataIndex].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                                    }
+                                                }
+                                            },
+                                            legend: {
+                                                display: false, // No mostrar leyenda
+                                            }
+                                        },
+                                        scales: {
+                                            x: {
+                                                grid: {
+                                                    display: false, // No mostrar las líneas de la cuadrícula en el eje X
+                                                }
+                                            },
+                                            y: {
+                                                ticks: {
+                                                    callback: function (value) {
+                                                        return `$${value.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <p className="text-main-dark text-center sm:text-left flex flex-col items-start font-light uppercase text-xs mt-2">
+                                Ingresos <span className="font-semibold text-base text-main-primary">Totales</span>
+                            </p>
+                        </div>
+                    </aside>
                 </section>
             }
 
             {/* Sección de Últimos Gastos */}
-            {filteredGastos.length > 0 &&
+            {/* {filteredGastos.length > 0 &&
                 <section className="w-full max-w-screen-sm py-3 mb-20">
                     <h2 className="text-main-dark text-lg font-semibold mb-4">Últimos Gastos</h2>
                     <ul className="space-y-3">
@@ -689,7 +602,7 @@ export default function HomePage() {
                             </li>
                         )}
                     </ul>
-                </section>}
+                </section>} */}
 
             {
                 state.isModalOpen && (

@@ -31,6 +31,7 @@ export default function HomePage() {
     const { loading, userAuth, userData, state, setState } = useContext(UserDataContext);
     const [totalGastos, setTotalGastos] = useState(0);
     const [filteredGastos, setFilteredGastos] = useState([]);
+    const [isIncome, setIsIncome] = useState(false);
 
     useEffect(() => {
         if (!userData || !state.gastos || loading) return;
@@ -142,99 +143,68 @@ export default function HomePage() {
         }));
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e, isIncome = false) => {
         e.preventDefault();
-        setState(prev => ({ ...prev, isSubmitting: true }));
+        setState((prev) => ({ ...prev, isSubmitting: true }));
 
-        // Validar el valor del gasto
-        const gastoValue = parseFloat((state.gasto || "").toString().replace(/[^0-9.-]+/g, ""));
-        if (isNaN(gastoValue) || gastoValue <= 0) {
-            setState(prev => ({ ...prev, error: "Por favor, ingresa un gasto válido.", isSubmitting: false }));
+        const value = parseFloat((state[isIncome ? "ingreso" : "gasto"] || "").toString().replace(/[^0-9.-]+/g, ""));
+        if (isNaN(value) || value <= 0) {
+            setState((prev) => ({
+                ...prev,
+                error: `Por favor, ingresa un ${isIncome ? "ingreso" : "gasto"} válido.`,
+                isSubmitting: false,
+            }));
+            console.log('ingreso');
             return;
+
         }
 
-        // Ajuste para la fecha
-        const date = state.date ? new Date(state.date + 'T00:00:00') : new Date();
-        //const date = state.date ? new Date(state.date) : new Date();
+        const date = state.date ? new Date(state.date + "T00:00:00") : new Date();
         const year = date.getFullYear();
         const month = date.getMonth();
         const day = date.getDate();
 
-        // Obtener la fecha de corte del usuario desde su perfil
-        const userCutoffDay = userData?.expenseControl.cutoffDay || 1; // Valor por defecto al 1 si no está configurado
-
+        const userCutoffDay = userData?.expenseControl.cutoffDay || 1;
         const yearString = String(year);
         let period = "";
 
-        // Determinación del periodo
+        // Lógica del periodo (sin cambios)
         if (day < userCutoffDay) {
-            switch (month) {
-                case 0: period = "diciembreEnero"; break;
-                case 1: period = "eneroFebrero"; break;
-                case 2: period = "febreroMarzo"; break;
-                case 3: period = "marzoAbril"; break;
-                case 4: period = "abrilMayo"; break;
-                case 5: period = "mayoJunio"; break;
-                case 6: period = "junioJulio"; break;
-                case 7: period = "julioAgosto"; break;
-                case 8: period = "agostoSeptiembre"; break;
-                case 9: period = "septiembreOctubre"; break;
-                case 10: period = "octubreNoviembre"; break;
-                case 11: period = "noviembreDiciembre"; break;
-                default: period = "desconocido";
-            }
+            period = [
+                "diciembreEnero", "eneroFebrero", "febreroMarzo", "marzoAbril",
+                "abrilMayo", "mayoJunio", "junioJulio", "julioAgosto",
+                "agostoSeptiembre", "septiembreOctubre", "octubreNoviembre", "noviembreDiciembre",
+            ][month] || "desconocido";
         } else {
-            switch (month) {
-                case 0: period = "eneroFebrero"; break;
-                case 1: period = "febreroMarzo"; break;
-                case 2: period = "marzoAbril"; break;
-                case 3: period = "abrilMayo"; break;
-                case 4: period = "mayoJunio"; break;
-                case 5: period = "junioJulio"; break;
-                case 6: period = "julioAgosto"; break;
-                case 7: period = "agostoSeptiembre"; break;
-                case 8: period = "septiembreOctubre"; break;
-                case 9: period = "octubreNoviembre"; break;
-                case 10: period = "noviembreDiciembre"; break;
-                case 11: period = "diciembreEnero"; break;
-                default: period = "desconocido";
-            }
+            period = [
+                "eneroFebrero", "febreroMarzo", "marzoAbril", "abrilMayo",
+                "mayoJunio", "junioJulio", "julioAgosto", "agostoSeptiembre",
+                "septiembreOctubre", "octubreNoviembre", "noviembreDiciembre", "diciembreEnero",
+            ][month] || "desconocido";
         }
 
         try {
-            let fileURL = state.fileURL; // Mantén la URL original del archivo si existe
-            let fileName; // Inicializa fileName como undefined
+            let fileURL = state.fileURL;
+            let fileName;
 
-            // Solo sube el archivo si el usuario ha seleccionado uno
             if (state.file) {
                 const now = new Date();
-                const year = String(now.getFullYear()).slice(2);
-                const month = String(now.getMonth() + 1).padStart(2, "0");
-                const day = String(now.getDate()).padStart(2, "0");
-                const hours = String(now.getHours()).padStart(2, "0");
-                const minutes = String(now.getMinutes()).padStart(2, "0");
-                const seconds = String(now.getSeconds()).padStart(2, "0");
-
-                const timesDate = `${year}${month}${day}`;
-                const timesHour = `${hours}${minutes}${seconds}`;
-
-                const cleanFileName = state.file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-                fileName = `IMG_${timesDate}-EC${timesHour}.${cleanFileName.split('.').pop()}`;
+                const timestamp = `${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+                const hourStamp = `${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
+                const cleanFileName = state.file.name.replace(/[^a-zA-Z0-9.]/g, "_");
+                fileName = `IMG_${timestamp}-EC${hourStamp}.${cleanFileName.split(".").pop()}`;
 
                 const storageRef = ref(storage, `userFiles/${userAuth.username}/${fileName}`);
-
                 try {
                     await uploadBytes(storageRef, state.file);
                     fileURL = await getDownloadURL(storageRef);
                 } catch (error) {
-                    console.error("Error al subir el archivo: ", error);
                     throw new Error("No se pudo subir el archivo.");
                 }
             }
 
-            // Prepara el objeto de datos a guardar
             const dataToSave = {
-                gasto: gastoValue,
+                [isIncome ? "ingreso" : "gasto"]: value,
                 title: state.title,
                 remarks: state.remarks,
                 type: state.type,
@@ -245,26 +215,26 @@ export default function HomePage() {
                 period: period,
             };
 
-            // Solo incluir fileURL si se obtuvo una URL válida
             if (fileURL) {
                 dataToSave.image = {
                     imageURL: fileURL,
-                    name: fileName || state.file?.name || "", // Usa fileName generado o nombre original
+                    name: fileName || state.file?.name || "",
                 };
             }
 
-            if (state.currentGastoId) {
-                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", String(state.currentGastoId));
-                await updateDoc(gastoRef, dataToSave);
+            const collectionName = isIncome ? "ingresos" : "gastos";
+
+            if (state.currentId) {
+                const docRef = doc(db, "userPosts", userAuth.username, collectionName, String(state.currentId));
+                await updateDoc(docRef, dataToSave);
             } else {
-                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos");
-                await addDoc(gastosRef, dataToSave);
+                const colRef = collection(db, "userPosts", userAuth.username, collectionName);
+                await addDoc(colRef, dataToSave);
             }
 
-            // Limpiar el estado después de la operación
-            setState(prev => ({
+            setState((prev) => ({
                 ...prev,
-                gasto: "",
+                [isIncome ? "ingreso" : "gasto"]: "",
                 title: "",
                 remarks: "",
                 category: "",
@@ -272,20 +242,20 @@ export default function HomePage() {
                 file: null,
                 isModalOpen: false,
                 error: "",
-                currentGastoId: null,
+                currentId: null,
             }));
 
             setTimeout(() => location.reload(), 1000);
         } catch (error) {
-            console.error("Error al guardar el gasto: ", error);
-            setState(prev => ({ ...prev, error: "Error al guardar los datos: " + error.message, isSubmitting: false }));
+            console.error(`Error al guardar el ${isIncome ? "ingreso" : "gasto"}: `, error);
+            setState((prev) => ({ ...prev, error: `Error al guardar los datos: ${error.message}`, isSubmitting: false }));
         } finally {
-            setState(prev => ({ ...prev, isSubmitting: false }));
+            setState((prev) => ({ ...prev, isSubmitting: false }));
         }
     };
 
-    // Agrupar por categoría
-    const groupedByCategory = state.gastos.reduce((acc, item) => {
+    // Agrupar Gastos por categoría
+    const groupedByCategoryExpense = state.gastos.reduce((acc, item) => {
         if (!acc[item.category]) {
             acc[item.category] = 0;
         }
@@ -302,21 +272,21 @@ export default function HomePage() {
         return acc;
     }, {});
 
-    // Extraer las categorías y los valores para cada gráfico
-    const categoryLabels = Object.keys(groupedByCategory);
-    const categoryValues = Object.values(groupedByCategory);
+    // Extraer las categorías y los valores para cada gráfico de Gastos
+    const categoryLabelsExpense = Object.keys(groupedByCategoryExpense);
+    const categoryValuesExpense = Object.values(groupedByCategoryExpense);
 
     // Extraer los tipos de pago y los valores para cada gráfico
     const paymentLabels = Object.keys(groupedByPaymentType);
     const paymentValues = Object.values(groupedByPaymentType);
 
-    // Preparar los datos para los gráficos de pastel
-    const categoryChartData = {
-        labels: categoryLabels,
+    // Preparar los datos para los gráficos de pastel de Gastos
+    const categoryChartDataExpense = {
+        labels: categoryLabelsExpense,
         datasets: [
             {
                 label: 'Gastos por Categoría',
-                data: categoryValues,
+                data: categoryValuesExpense,
                 backgroundColor: ['#C2185B', '#00A86B', '#580d71', '#EF5350', '#7c90bc'],
                 borderColor: '#fff',
                 borderWidth: 1,
@@ -337,9 +307,21 @@ export default function HomePage() {
         ],
     };
 
+    // Agrupar Ingresos por categoría
+    const groupedByCategoryIncome = state.ingresos.reduce((acc, item) => {
+        if (!acc[item.category]) {
+            acc[item.category] = 0;
+        }
+        acc[item.category] += parseFloat(item.ingreso) || 0;
+        return acc;
+    }, {});
+    const categoryLabelsIncome = Object.keys(groupedByCategoryIncome);
+    const categoryValuesIncome = Object.values(groupedByCategoryIncome);
+
     const totalBudget = !loading && userData && userData.expenseControl && userData.expenseControl.budget
-    const totalSpent = !loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos
-    const percentSpent = totalSpent * 100 / totalBudget
+    const totalBudgetToSpent = !loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos
+    const percentSpent = totalBudgetToSpent * 100 / totalBudget
+    const percentFree = totalGastos * 100 / totalBudget
 
     if (state.loading) {
         return <Spinner />;
@@ -362,12 +344,24 @@ export default function HomePage() {
 
             {/* Botones para Agregar Gastos */}
             <section className="w-full max-w-screen-sm flex justify-between items-center gap-2 py-3">
-                <button onClick={openModal} className="w-full flex-center gap-1 text-sm font-semibold bg-main-primary/70 text-white rounded-3xl p-3 transition-colors duration-200 hover:bg-main-primary">
+                <button
+                    onClick={() => {
+                        setIsIncome(false); // Es un gasto
+                        openModal();
+                    }}
+                    className="w-full flex-center gap-1 text-sm font-semibold bg-main-primary/70 text-white rounded-3xl p-3 transition-colors duration-200 hover:bg-main-primary"
+                >
                     <i className="flex-center w-6 h-6 rounded-full hover:scale-105">{ICONS.plus.fill("#FFFFFF")}</i>
                     Agregar Gasto
                 </button>
 
-                <button onClick={() => alert('Ups! Estamos trabajando en esta función.')} className="w-full flex-center gap-1 text-sm font-semibold bg-main-highlight/70 text-white rounded-3xl p-3 transition-colors duration-200 hover:bg-main-highlight">
+                <button
+                    onClick={() => {
+                        setIsIncome(true); // Es un ingreso
+                        openModal();
+                    }}
+                    className="w-full flex-center gap-1 text-sm font-semibold bg-main-highlight/70 text-white rounded-3xl p-3 transition-colors duration-200 hover:bg-main-highlight"
+                >
                     <i className="flex-center w-6 h-6 rounded-full hover:scale-105">{ICONS.plus.fill("#FFFFFF")}</i>
                     Agregar Ingreso
                 </button>
@@ -389,14 +383,14 @@ export default function HomePage() {
                             <div className="bg-main-dark/5 p-4 rounded-3xl h-full flex flex-col items-start">
                                 <div className="flex-grow flex-center w-full pr-12">
                                     <Pie
-                                        data={categoryChartData}
+                                        data={categoryChartDataExpense}
                                         options={{
-                                            cutout: '35%',
+                                            cutout: '75%',
                                             plugins: {
                                                 tooltip: {
                                                     callbacks: {
                                                         label: (tooltipItem) => {
-                                                            return `${categoryLabels[tooltipItem.dataIndex]}: $${categoryValues[tooltipItem.dataIndex].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                                            return `${categoryLabelsExpense[tooltipItem.dataIndex]}: $${categoryValuesExpense[tooltipItem.dataIndex].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                                                         }
                                                     }
                                                 },
@@ -406,7 +400,7 @@ export default function HomePage() {
                                             }
                                         }}
                                     />
-
+                                    <span className={`absolute m-auto font-bold text-xl ${percentFree > 100 && 'text-main-primary'}`}>{` ${percentFree.toFixed(0)}% `}</span>
                                 </div>
                                 <p className="text-main-dark text-center sm:text-left flex flex-col items-start font-light uppercase text-xs mt-2">
                                     Gastos por<span className="font-semibold text-base text-main-primary">Categoría</span>
@@ -418,9 +412,9 @@ export default function HomePage() {
                         <div className="w-[48%] max-w-[300px] aspect-square">
                             <div className="bg-main-dark/5 p-4 rounded-3xl h-full flex items-center">
                                 <div className="space-y-1 w-full">
-                                    {categoryLabels.map((category, index) => (
+                                    {categoryLabelsExpense.map((category, index) => (
                                         <div key={category} className="flex justify-between items-center border-b border-main-dark/20">
-                                            <span className="text-xs font-light capitalize text-main-dark" style={{ color: categoryChartData.datasets[0].backgroundColor[index] }}>
+                                            <span className="text-xs font-light capitalize text-main-dark" style={{ color: categoryChartDataExpense.datasets[0].backgroundColor[index] }}>
                                                 {
                                                     category == 'feeding' && 'Alimentación y Bebidas' ||
                                                     category == 'transportation' && 'Transporte' ||
@@ -432,7 +426,7 @@ export default function HomePage() {
                                                 }
                                             </span>
                                             <span className="text-sm text-main-highlight" style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}>
-                                                ${categoryValues[index].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                ${categoryValuesExpense[index].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
                                         </div>
                                     ))}
@@ -443,20 +437,13 @@ export default function HomePage() {
 
                     <aside className="w-full flex flex-wrap items-start gap-[4%]">
                         {paymentLabels.map((paymentType, index) => (
-                            <div key={paymentType} className="w-[48%] max-w-[300px] mb-4">
+                            <div key={paymentType} className="w-[48%] max-w-[300px] h-20 mb-4">
                                 <div className="bg-main-dark/5 py-2 px-4 rounded-3xl h-full flex flex-col items-start">
                                     {/* Tarjeta con el total de cada tipo de pago */}
-                                    <div className="flex-grow flex-center gap-2 w-full">
-                                        <i className="flex-center w-9 h-9">
-                                            {
-                                                paymentType === 'cash' && ICONS.money.border(paymentChartData.datasets[0].backgroundColor[index]) ||
-                                                paymentType === 'other' && ICONS.bitcoin.border(paymentChartData.datasets[0].backgroundColor[index]) ||
-                                                ICONS.credit_card.border(paymentChartData.datasets[0].backgroundColor[index])
-                                            }
-                                        </i>
+                                    <div className="flex-grow flex gap-4 w-full">
                                         <p className="flex flex-col items-start w-full py-1">
                                             <span
-                                                className="text-xs font-light capitalize text-main-dark leading-4"
+                                                className="text-xs font-light capitalize text-main-dark"
                                                 style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}
                                             >
                                                 {paymentType === 'card1' && userData.paymentTypes.card1}
@@ -468,12 +455,19 @@ export default function HomePage() {
                                                 {paymentType === 'cash' && 'Efectivo'}
                                             </span>
                                             <span
-                                                className="text-xl font-semibold text-main-dark leading-4"
+                                                className="text-xl font-semibold text-main-dark"
                                             //style={{ color: paymentChartData.datasets[0].backgroundColor[index] }}
                                             >
                                                 ${paymentValues[index].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
                                         </p>
+                                        <i className="flex-center w-9 h-9">
+                                            {
+                                                paymentType === 'cash' && ICONS.money.border(paymentChartData.datasets[0].backgroundColor[index]) ||
+                                                paymentType === 'other' && ICONS.bitcoin.border(paymentChartData.datasets[0].backgroundColor[index]) ||
+                                                ICONS.credit_card.border(paymentChartData.datasets[0].backgroundColor[index])
+                                            }
+                                        </i>
                                     </div>
                                 </div>
                             </div>
@@ -481,22 +475,22 @@ export default function HomePage() {
                     </aside>
 
                     <aside className="w-full flex flex-wrap items-stretch gap-[4%]">
-                        <div className={`bg-main-dark/5 rounded-3xl p-4 flex justify-between ${percentSpent < 0 ? 'flex-col items-start w-[48%] max-w-[300px]' : 'w-full items-center'}`}>
-                            <span className="text-main-dark">Presupuesto</span>
-                            <span className="text-main-dark font-semibold"> {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalBudget)}
+                        <div className={`flex flex-col bg-main-dark/5 rounded-3xl p-4 ${percentSpent < 0 ? ' items-start w-[48%] max-w-[300px]' : ' w-[48%] max-w-[300px] h-20'}`}>
+                            <span className="font-light text-xs text-main-dark">Presupuesto Libre</span>
+                            <span className="font-semibold text-xl text-main-dark"> {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalBudget - totalGastos)}
                             </span>
                         </div>
-                        <div className={`bg-main-dark/5 rounded-3xl p-4 flex justify-between ${percentSpent < 0 ? 'flex-col items-start  w-[48%] max-w-[300px]' : 'w-full items-center mt-4'}`}>
-                            <span className="text-main-dark">Gastos Totales</span>
-                            <span className="text-main-dark font-semibold">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <div className={`flex flex-col bg-main-dark/5 rounded-3xl p-4 ${percentSpent < 0 ? ' items-start w-[48%] max-w-[300px]' : ' w-[48%] max-w-[300px] h-20'}`}>
+                            <span className="font-light text-xs text-main-dark">Gastos Totales</span>
+                            <span className="font-semibold text-xl text-main-dark">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                     </aside>
 
                     <aside className="w-full flex flex-wrap items-stretch gap-[4%] my-4">
-                        <div className={`${(totalSpent) < 0 ? 'bg-main-dark/20' : 'bg-main-dark/5'} ${percentSpent < 0 ? 'w-[48%] max-w-[300px]' : 'w-full'} bg-main-dark/20 rounded-3xl p-4 flex justify-between items-center`}>
-                            <span className="text-main-dark">Saldo Actual</span>
-                            <span className={`${totalSpent < 0 ? 'text-main-primary' : 'text-main-highlight'} font-semibold`}>
-                                {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalSpent)}
+                        <div className={`${(totalBudgetToSpent) < 0 ? 'bg-main-dark/20' : 'bg-main-dark/5 hidden'} ${percentSpent < 0 ? 'w-[48%] max-w-[300px]' : 'w-full'} bg-main-dark/20 rounded-3xl p-4 flex justify-between items-center`}>
+                            <span className="text-main-dark">Saldo</span>
+                            <span className={`${totalBudgetToSpent < 0 ? 'text-main-primary' : 'text-main-highlight'} font-semibold`}>
+                                {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalBudgetToSpent)}
                             </span>
                         </div>
 
@@ -520,13 +514,13 @@ export default function HomePage() {
                             <div className="w-full flex-grow flex justify-center">
                                 <Line
                                     data={{
-                                        labels: categoryLabels, // Las etiquetas de las categorías (por ejemplo, meses, tipos de gasto, etc.)
+                                        labels: categoryLabelsIncome, // Usar categoryLabelsIncome directamente
                                         datasets: [{
-                                            label: 'Gastos por Categoría',
-                                            data: categoryValues, // Los valores de los gastos por categoría
-                                            borderColor: '#4D8EF6', // Color de la línea (puedes ajustarlo)
+                                            label: 'Ingresos por Categoría',
+                                            data: categoryValuesIncome, // Usar categoryValuesIncome directamente
+                                            borderColor: '#00A86B', // Color de la línea
                                             backgroundColor: 'rgba(77, 143, 246, 0.2)', // Color de fondo de la línea
-                                            fill: true, // Hacer el área debajo de la línea rellena
+                                            fill: true, // Rellenar el área debajo de la línea
                                             tension: 0.4, // Suavizado de la línea
                                         }]
                                     }}
@@ -536,7 +530,7 @@ export default function HomePage() {
                                             tooltip: {
                                                 callbacks: {
                                                     label: (tooltipItem) => {
-                                                        return `${categoryLabels[tooltipItem.dataIndex]}: $${categoryValues[tooltipItem.dataIndex].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                                        return `${categoryLabelsIncome[tooltipItem.dataIndex]}: $${categoryValuesIncome[tooltipItem.dataIndex].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                                                     }
                                                 }
                                             },
@@ -547,7 +541,7 @@ export default function HomePage() {
                                         scales: {
                                             x: {
                                                 grid: {
-                                                    display: false, // No mostrar las líneas de la cuadrícula en el eje X
+                                                    display: false, // No mostrar líneas de la cuadrícula en el eje X
                                                 }
                                             },
                                             y: {
@@ -560,6 +554,7 @@ export default function HomePage() {
                                         }
                                     }}
                                 />
+
                             </div>
                             <p className="text-main-dark text-center sm:text-left flex flex-col items-start font-light uppercase text-xs mt-2">
                                 Ingresos <span className="font-semibold text-base text-main-primary">Totales</span>
@@ -608,7 +603,7 @@ export default function HomePage() {
                 state.isModalOpen && (
                     <div className="fixed inset-0 bg-black/50 flex-center z-50">
                         <div className="bg-white rounded-lg max-w-lg w-full h-[85vh] relative overflow-hidden">
-                            <form onSubmit={handleSubmit} className="space-y-4">
+                            <form onSubmit={(e) => handleSubmit(e, isIncome)} className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <button onClick={closeModal} className="p-2 text-main-primary">Cancelar</button>
 
@@ -626,7 +621,7 @@ export default function HomePage() {
                                         <input
                                             name="title"
                                             type="text"
-                                            placeholder="Concepto"
+                                            placeholder={isIncome ? "Concepto del ingreso" : "Concepto del gasto"}
                                             value={state.title}
                                             onChange={handleChange}
                                             className="w-full py-2 bg-transparent outline-none border-b border-main-dark/20 text-main-dark placeholder:text-main-dark/50"
@@ -635,10 +630,10 @@ export default function HomePage() {
                                         <div className="flex-center pt-2 py-2">
                                             $
                                             <input
-                                                name="gasto"
+                                                name={isIncome ? "ingreso" : "gasto"}
                                                 type="text" // Mantener como texto para manejar el formato
-                                                placeholder="$ $"
-                                                value={state.gasto}
+                                                placeholder={`$ $ ${isIncome ? "Ingreso" : "Gasto"}`}
+                                                value={state[isIncome ? "ingreso" : "gasto"]}
                                                 onChange={handleChange}
                                                 onBlur={handleBlur} // Formato al perder el foco
                                                 className="w-full pl-1 bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
@@ -648,41 +643,80 @@ export default function HomePage() {
                                         </div>
                                     </hgroup>
 
+
                                     <div className="rounded-3xl p-4 mb-4 bg-main-light">
                                         <select name="type" value={state.type} onChange={handleChange} className="w-full bg-transparent outline-none" required>
-                                            <option value="" hidden className="text-main-gray">Pago con</option>
-                                            {userData.paymentTypes.card1 &&
-                                                <option value={"card1"}>{userData.paymentTypes.card1}</option>}
-                                            {userData.paymentTypes.card2 &&
-                                                <option value={"card2"}>{userData.paymentTypes.card2}</option>
-                                            }
-                                            {userData.paymentTypes.card3 &&
-                                                <option value={"card3"}>{userData.paymentTypes.card3}</option>
-                                            }
-                                            {userData.paymentTypes.card4 &&
-                                                <option value={"card4"}>{userData.paymentTypes.card4}</option>
-                                            }
-                                            {userData.paymentTypes.card5 &&
-                                                <option value={"card5"}>{userData.paymentTypes.card5}</option>
-                                            }
-                                            {userData.paymentTypes.other &&
-                                                <option value={"other"}>{userData.paymentTypes.other}</option>
-                                            }
-                                            <option value={"cash"}>Efectivo</option>
+                                            {isIncome ? (
+                                                <>
+                                                    <option value="" hidden className="text-main-gray">Pago con</option>
+                                                    {userData.incomeControl.paymentTypes.type1 &&
+                                                        <option value={"type1"}>{userData.incomeControl.paymentTypes.type1}</option>}
+                                                    {userData.incomeControl.paymentTypes.type2 &&
+                                                        <option value={"type2"}>{userData.incomeControl.paymentTypes.type2}</option>
+                                                    }
+                                                    {userData.incomeControl.paymentTypes.type3 &&
+                                                        <option value={"type3"}>{userData.incomeControl.paymentTypes.type3}</option>
+                                                    }
+                                                    {userData.incomeControl.paymentTypes.type4 &&
+                                                        <option value={"type4"}>{userData.incomeControl.paymentTypes.type4}</option>
+                                                    }
+                                                    {userData.incomeControl.paymentTypes.type5 &&
+                                                        <option value={"type5"}>{userData.incomeControl.paymentTypes.type5}</option>
+                                                    }
+                                                    {userData.incomeControl.paymentTypes.other &&
+                                                        <option value={"other"}>{userData.incomeControl.paymentTypes.other}</option>
+                                                    }
+                                                    <option value={"cash"}>Efectivo</option>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <option value="" hidden className="text-main-gray">Pago con</option>
+                                                    {userData.paymentTypes.card1 &&
+                                                        <option value={"card1"}>{userData.paymentTypes.card1}</option>}
+                                                    {userData.paymentTypes.card2 &&
+                                                        <option value={"card2"}>{userData.paymentTypes.card2}</option>
+                                                    }
+                                                    {userData.paymentTypes.card3 &&
+                                                        <option value={"card3"}>{userData.paymentTypes.card3}</option>
+                                                    }
+                                                    {userData.paymentTypes.card4 &&
+                                                        <option value={"card4"}>{userData.paymentTypes.card4}</option>
+                                                    }
+                                                    {userData.paymentTypes.card5 &&
+                                                        <option value={"card5"}>{userData.paymentTypes.card5}</option>
+                                                    }
+                                                    {userData.paymentTypes.other &&
+                                                        <option value={"other"}>{userData.paymentTypes.other}</option>
+                                                    }
+                                                    <option value={"cash"}>Efectivo</option>
+                                                </>
+                                            )}
                                         </select>
                                     </div>
 
                                     <div className="rounded-3xl p-4 mb-4 bg-main-light">
                                         <select name="category" value={state.category} onChange={handleChange} className="w-full bg-transparent outline-none" required>
                                             <option value="" hidden className="text-main-gray">Categorías</option>
-                                            <option value={"feeding"}>Alimentación y Bebidas</option>
-                                            <option value={"transportation"}>Transporte</option>
-                                            <option value={"health"}>Salud y Bienestar</option>
-                                            <option value={"educationJob"}>Gastos de Educación o Trabajo</option>
-                                            <option value={"housing"}>Vivienda</option>
-                                            <option value={"entertainment"}>Entretenimiento y Ocio</option>
-                                            <option value={"personalCare"}>Ropa y Cuidado Personal</option>
+                                            {isIncome ? (
+                                                <>
+                                                    <option value={"salary"}>Salario</option>
+                                                    <option value={"business"}>Negocios</option>
+                                                    <option value={"investment"}>Inversiones</option>
+                                                    <option value={"other"}>Otros Ingresos</option>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <option value={"feeding"}>Alimentación y Bebidas</option>
+                                                    <option value={"transportation"}>Transporte</option>
+                                                    <option value={"health"}>Salud y Bienestar</option>
+                                                    <option value={"educationJob"}>Gastos de Educación o Trabajo</option>
+                                                    <option value={"housing"}>Vivienda</option>
+                                                    <option value={"entertainment"}>Entretenimiento y Ocio</option>
+                                                    <option value={"personalCare"}>Ropa y Cuidado Personal</option>
+                                                </>
+                                            )}
                                         </select>
+
                                     </div>
 
                                     <div className="rounded-3xl p-4 mb-4 bg-main-light">

@@ -16,6 +16,8 @@ export default function ProfilePage() {
     const [newCutoffDay, setNewCutoffDay] = useState(!loading && userData && userData.expenseControl && userData?.expenseControl.cutoffDay || '1');
     const [paymentType, setPaymentType] = useState('');
     const [cardType, setCardType] = useState('');
+    const [incomeType, setIncomeType] = useState('');
+    const [incomeCategory, setIncomeCategory] = useState('');
 
     const navigate = useNavigate();
 
@@ -39,11 +41,13 @@ export default function ProfilePage() {
 
             // Construimos un objeto para la actualización
             const updateData = {
+                // Actualizar control de gastos
                 "expenseControl.budget": newBudget,
                 "expenseControl.currency": newCurrency,
                 "expenseControl.cutoffDay": newCutoffDay,
-                // Solo actualizamos paymentType si paymentType no es vacío
                 ...(paymentType && cardType ? { [`paymentTypes.${paymentType}`]: cardType } : {}),
+                // Actualizar control de ingresos
+                ...(incomeType && incomeCategory ? { [`incomeControl.paymentTypes.${incomeType}`]: incomeCategory } : {}),
             };
 
             try {
@@ -73,6 +77,10 @@ export default function ProfilePage() {
     };
 
     const availableCardOptions = ["card1", "card2", "card3", "card4", "card5"].filter(
+        card => !(userData?.paymentTypes && userData.paymentTypes[card])
+    );
+
+    const availablePayOptions = ["type1", "type2", "type3", "type4", "type5"].filter(
         card => !(userData?.paymentTypes && userData.paymentTypes[card])
     );
 
@@ -148,7 +156,7 @@ export default function ProfilePage() {
 
                     <div className="relative rounded-3xl py-2 px-4 mb-4 bg-main-dark/5">
                         <label htmlFor="paymentTypes" className="absolute -top-2 text-sm font-medium rounded-full px-1 text-gray-700/50">
-                            Tipos de Pago
+                            Tipos de Pago (Control de Gastos)
                         </label>
                         <span className="flex-center pt-2 py-2">
                             <select
@@ -175,7 +183,6 @@ export default function ProfilePage() {
                                     value={cardType}  // Vinculamos con el estado para permitir al usuario escribir
                                     onChange={handleInputChange}
                                     className="w-full pl-1 bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
-                                    required
                                 />
                             )}
 
@@ -194,6 +201,44 @@ export default function ProfilePage() {
                         </span>
                         <span className="text-main-dark/50">
                             Por defecto ya está habilitado el tipo de pago en efectivo, no es necesario que lo coloques.
+                        </span>
+                    </div>
+
+                    <div className="relative rounded-3xl py-2 px-4 mb-4 bg-main-dark/5">
+                        <label htmlFor="incomeTypes" className="absolute -top-2 text-sm font-medium rounded-full px-1 text-gray-700/50">
+                            Tipos de Ingreso
+                        </label>
+                        <span className="flex-center pt-2 py-2">
+                            <select
+                                name="incomeTypes"
+                                className="w-1/3 bg-transparent outline-none"
+                                value={incomeType}
+                                onChange={(e) => setIncomeType(e.target.value)}
+                            >
+                                <option value="" disabled>Dar de alta</option>
+                                {availablePayOptions.map((type) => (
+                                    <option key={type} value={type}>
+                                        {`Tipo de ingreso ${type.charAt(4)}`}
+                                    </option>
+                                ))}
+                                <option value="other">Otro tipo de ingreso</option>
+                            </select>
+
+                            {/* Mostrar el input solo si se seleccionó un tipo de ingreso */}
+                            {(incomeType && (
+                                <input
+                                    name="incomeCategory"
+                                    type="text"
+                                    placeholder="Ej: Transferencia, Cheque"
+                                    value={incomeCategory}
+                                    onChange={(e) => setIncomeCategory(e.target.value)}
+                                    className="w-full pl-1 bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
+                                    required
+                                />
+                            ))}
+                        </span>
+                        <span className="text-main-dark/50">
+                            Por defecto ya está habilitado el tipo de ingreso en efectivo, no es necesario que lo coloques.
                         </span>
                     </div>
 

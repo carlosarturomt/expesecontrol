@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { addDoc, collection, deleteDoc, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db, storage } from "@services/firebase/config";
 import { UserDataContext } from "@context/userDataContext";
@@ -17,7 +17,6 @@ import {
 } from 'chart.js';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
-
 
 export default function HomePage() {
     const { isAuthenticated } = useAuthRequired("/register", "/");
@@ -103,7 +102,10 @@ export default function HomePage() {
                     date: gastoData?.createdAt
                         ? gastoData.createdAt.toDate().toISOString().substring(0, 10)
                         : '',
-                    fileURL: gastoData?.fileURL || '',
+                    image: {
+                        imageURL: gastoData?.fileURL,
+                        name: gastoData?.name
+                    },
                     isModalOpen: true,
                     currentGastoId: id,
                 }));
@@ -115,20 +117,40 @@ export default function HomePage() {
         }
     };
 
-    const handleDelete = async (id) => {
-        const confirmDelete = window.confirm(`¿Estás seguro de que deseas eliminar este gasto?`);
+    const handleDelete = async (id, gasto, imageName) => {
+        const confirmDelete = window.confirm(
+            `¿Estás seguro de que deseas eliminar el gasto "${gasto.title}" de $${gasto.gasto}?`
+        );
+
         if (confirmDelete) {
             try {
                 const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
+
+                // Verificar que imageName esté definido y no vacío antes de intentar eliminar la imagen
+                if (imageName && imageName.trim() !== "") {
+                    const storageRef = ref(storage, `userFiles/${userAuth.username}/${imageName}`);
+                    try {
+                        await deleteObject(storageRef);
+                        console.log("Imagen asociada eliminada de Storage.");
+                    } catch (error) {
+                        console.error("Error al eliminar la imagen de Storage: ", error);
+                    }
+                } else {
+                    console.log("No se proporcionó una imagen para eliminar.");
+                }
+
+                // Elimina el documento del gasto en Firestore
                 await deleteDoc(gastoRef);
+                console.log("Gasto eliminado correctamente.");
 
                 // Actualiza el estado local en lugar de recargar la página
                 setState((prev) => ({
                     ...prev,
-                    gastos: prev.gastos.filter((gasto) => gasto.id !== id),
+                    gastos: prev.gastos.filter((g) => g.id !== id), // Filtra el gasto eliminado
                 }));
             } catch (error) {
                 console.error("Error al eliminar el gasto: ", error);
+                alert("No se pudo eliminar el gasto. Intenta nuevamente.");
             }
         }
     };
@@ -187,7 +209,7 @@ export default function HomePage() {
         }));
     };
 
-    const handleSubmitExpense = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setState(prev => ({ ...prev, isSubmitting: true }));
 
@@ -200,6 +222,7 @@ export default function HomePage() {
 
         // Ajuste para la fecha
         const date = state.date ? new Date(state.date + 'T00:00:00') : new Date();
+        //const date = state.date ? new Date(state.date) : new Date();
         const year = date.getFullYear();
         const month = date.getMonth();
         const day = date.getDate();
@@ -247,15 +270,33 @@ export default function HomePage() {
 
         try {
             let fileURL = state.fileURL; // Mantén la URL original del archivo si existe
+            let fileName; // Inicializa fileName como undefined
 
             // Solo sube el archivo si el usuario ha seleccionado uno
             if (state.file) {
-                const timestamp = Date.now();
-                const fileName = `${state.title}_${timestamp}.${state.file.name.split('.').pop()}`;
+                const now = new Date();
+                const year = String(now.getFullYear()).slice(2);
+                const month = String(now.getMonth() + 1).padStart(2, "0");
+                const day = String(now.getDate()).padStart(2, "0");
+                const hours = String(now.getHours()).padStart(2, "0");
+                const minutes = String(now.getMinutes()).padStart(2, "0");
+                const seconds = String(now.getSeconds()).padStart(2, "0");
+
+                const timesDate = `${year}${month}${day}`;
+                const timesHour = `${hours}${minutes}${seconds}`;
+
+                const cleanFileName = state.file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+                fileName = `IMG_${timesDate}-EC${timesHour}.${cleanFileName.split('.').pop()}`;
+
                 const storageRef = ref(storage, `userFiles/${userAuth.username}/${fileName}`);
 
-                await uploadBytes(storageRef, state.file);
-                fileURL = await getDownloadURL(storageRef);
+                try {
+                    await uploadBytes(storageRef, state.file);
+                    fileURL = await getDownloadURL(storageRef);
+                } catch (error) {
+                    console.error("Error al subir el archivo: ", error);
+                    throw new Error("No se pudo subir el archivo.");
+                }
             }
 
             // Prepara el objeto de datos a guardar
@@ -273,7 +314,10 @@ export default function HomePage() {
 
             // Solo incluir fileURL si se obtuvo una URL válida
             if (fileURL) {
-                dataToSave.fileURL = fileURL;
+                dataToSave.image = {
+                    imageURL: fileURL,
+                    name: fileName || state.file?.name || "", // Usa fileName generado o nombre original
+                };
             }
 
             if (state.currentGastoId) {
@@ -298,10 +342,10 @@ export default function HomePage() {
                 currentGastoId: null,
             }));
 
-            setTimeout(() => location.reload(), 1000)
+            setTimeout(() => location.reload(), 1000);
         } catch (error) {
-            console.error("Error al subir datos: ", error);
-            setState(prev => ({ ...prev, error: "Error al subir los datos: " + error.message, isSubmitting: false }));
+            console.error("Error al guardar el gasto: ", error);
+            setState(prev => ({ ...prev, error: "Error al guardar los datos: " + error.message, isSubmitting: false }));
         } finally {
             setState(prev => ({ ...prev, isSubmitting: false }));
         }
@@ -633,7 +677,8 @@ export default function HomePage() {
                                         context={userData}
                                         data={gasto}
                                         onEdit={() => handleEdit(gasto.id)}
-                                        onDelete={() => handleDelete(gasto.id)}
+                                        onDelete={() => handleDelete(gasto.id, gasto, gasto.image &&
+                                            gasto.image.name)}
                                         expandedGastoId={expandedGastoId}
                                         onCardClick={handleCardClick}
                                     />
@@ -650,7 +695,7 @@ export default function HomePage() {
                 state.isModalOpen && (
                     <div className="fixed inset-0 bg-black/50 flex-center z-50">
                         <div className="bg-white rounded-lg max-w-lg w-full h-[85vh] relative overflow-hidden">
-                            <form onSubmit={handleSubmitExpense} className="space-y-4">
+                            <form onSubmit={handleSubmit} className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <button onClick={closeModal} className="p-2 text-main-primary">Cancelar</button>
 
@@ -691,7 +736,7 @@ export default function HomePage() {
                                     </hgroup>
 
                                     <div className="rounded-3xl p-4 mb-4 bg-main-light">
-                                        <select name="type" value={state.type} onChange={handleChange} className="w-full bg-transparent outline-none">
+                                        <select name="type" value={state.type} onChange={handleChange} className="w-full bg-transparent outline-none" required>
                                             <option value="" hidden className="text-main-gray">Pago con</option>
                                             {userData.paymentTypes.card1 &&
                                                 <option value={"card1"}>{userData.paymentTypes.card1}</option>}
@@ -715,7 +760,7 @@ export default function HomePage() {
                                     </div>
 
                                     <div className="rounded-3xl p-4 mb-4 bg-main-light">
-                                        <select name="category" value={state.category} onChange={handleChange} className="w-full bg-transparent outline-none">
+                                        <select name="category" value={state.category} onChange={handleChange} className="w-full bg-transparent outline-none" required>
                                             <option value="" hidden className="text-main-gray">Categorías</option>
                                             <option value={"feeding"}>Alimentación y Bebidas</option>
                                             <option value={"transportation"}>Transporte</option>

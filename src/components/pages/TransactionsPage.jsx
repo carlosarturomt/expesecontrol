@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { addDoc, collection, deleteDoc, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db, storage } from "@services/firebase/config";
 import useAuthRequired from "@hooks/useAuthRequired";
@@ -14,7 +14,6 @@ export default function TransactionsPage() {
     const { loading, userAuth, userData, state, setState } = useContext(UserDataContext);
     const [expandedGastoId, setExpandedGastoId] = useState(null);
     const [filterText, setFilterText] = useState('');
-
 
     useEffect(() => {
         if (!userData || !state.gastos || loading) return;
@@ -41,18 +40,17 @@ export default function TransactionsPage() {
             59
         );
 
-        console.log("Rango de fechas:", { startDate, endDate });
+        //console.log("Rango de fechas:", { startDate, endDate });
 
         // Filtrar los gastos
         const gastosFiltrados = state.gastos.filter((gasto) => {
             const gastoDate = gasto.createdAt instanceof Date ? gasto.createdAt : gasto.createdAt.toDate();
-            console.log("GastoDate:", gastoDate, "Dentro del rango:", gastoDate >= startDate && gastoDate <= endDate);
+            //console.log("GastoDate:", gastoDate, "Dentro del rango:", gastoDate >= startDate && gastoDate <= endDate);
             return gastoDate >= startDate && gastoDate <= endDate;
         });
 
 
     }, [state.gastos, userData, loading]);
-
 
     useEffect(() => {
         if (state.isModalOpen) {
@@ -157,22 +155,40 @@ export default function TransactionsPage() {
         }
     };
 
-    const handleDelete = async (id) => {
-        const confirmDelete = window.confirm(`¿Estás seguro de que deseas eliminar este gasto?`);
+    const handleDelete = async (id, gasto, imageName) => {
+        const confirmDelete = window.confirm(
+            `¿Estás seguro de que deseas eliminar el gasto "${gasto.title}" de $${gasto.gasto}?`
+        );
+
         if (confirmDelete) {
             try {
                 const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
-                await deleteDoc(gastoRef);
 
-                console.log(`Gasto con ID: ${id} eliminado.`);
+                // Verificar que imageName esté definido y no vacío antes de intentar eliminar la imagen
+                if (imageName && imageName.trim() !== "") {
+                    const storageRef = ref(storage, `userFiles/${userAuth.username}/${imageName}`);
+                    try {
+                        await deleteObject(storageRef);
+                        console.log("Imagen asociada eliminada de Storage.");
+                    } catch (error) {
+                        console.error("Error al eliminar la imagen de Storage: ", error);
+                    }
+                } else {
+                    console.log("No se proporcionó una imagen para eliminar.");
+                }
+
+                // Elimina el documento del gasto en Firestore
+                await deleteDoc(gastoRef);
+                console.log("Gasto eliminado correctamente.");
 
                 // Actualiza el estado local en lugar de recargar la página
                 setState((prev) => ({
                     ...prev,
-                    gastos: prev.gastos.filter((gasto) => gasto.id !== id),
+                    gastos: prev.gastos.filter((g) => g.id !== id), // Filtra el gasto eliminado
                 }));
             } catch (error) {
                 console.error("Error al eliminar el gasto: ", error);
+                alert("No se pudo eliminar el gasto. Intenta nuevamente.");
             }
         }
     };
@@ -415,7 +431,8 @@ export default function TransactionsPage() {
                                     context={userData}
                                     data={gasto}
                                     onEdit={() => handleEdit(gasto.id)}
-                                    onDelete={() => handleDelete(gasto.id)}
+                                    onDelete={() => handleDelete(gasto.id, gasto, gasto.image &&
+                                        gasto.image.name)}
                                     expandedGastoId={expandedGastoId}
                                     onCardClick={handleCardClick}
                                 />

@@ -349,9 +349,9 @@ function SwipeableCard({ context, data, onEdit, onDelete, expandedGastoId, onCar
 									}
 								</p>
 							)}
-							{data.fileURL && (
+							{(data.image || data.fileURL) && (
 								<NavLink
-									to={data.fileURL}
+									to={data.image && data.image.imageURL || data.fileURL}
 									target="_blank"
 									className="w-fit flex-center gap-1 py-1 px-2 rounded-3xl text-main-light bg-main-dark"
 								>

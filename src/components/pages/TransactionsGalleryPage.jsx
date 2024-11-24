@@ -33,7 +33,7 @@ export default function TransactionsGalleryPage() {
     // Filtra los gastos en función del texto del filtro
     const filteredGastos = state.gastos
         .filter(gasto =>
-            gasto.fileURL && // Filtra solo los gastos que tienen fileURL
+            gasto.image && gasto.image.imageURL || gasto.fileURL && // Filtra solo los gastos que tienen fileURL
             (gasto.title.toLowerCase().includes(filterText.toLowerCase()) ||
                 gasto.remarks.toLowerCase().includes(filterText.toLowerCase()) ||
                 gasto.category.toLowerCase().includes(filterText.toLowerCase()))
@@ -175,7 +175,7 @@ export default function TransactionsGalleryPage() {
                                     onClick={() => handleZoomToggle(gasto.id)}
                                 >
                                     <img
-                                        src={gasto.fileURL}
+                                        src={gasto.image && gasto.image.imageURL || gasto.fileURL}
                                         alt={gasto.title}
                                         loading="lazy"
                                         className={`object-cover w-full h-full md:min-h-[200px] rounded-lg blurred-img bg-neutral-250 dark:bg-[#000e2c] ${zoomedPostId === gasto.id ? 'scale-110' : ''}`}

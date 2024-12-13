@@ -5,7 +5,7 @@ const NavigationFooter = () => {
     const location = useLocation().pathname
 
     return (
-        <footer className="fixed w-[95%] max-w-screen-sm mx-auto bottom-3 rounded-full p-2 flex items-center justify-evenly font-semibold backdrop-blur-sm text-main-light bg-main-highlight/70 shadow-lg">
+        <footer className="fixed w-[95%] max-w-screen-sm mx-auto bottom-3 rounded-full p-2 flex items-center justify-evenly font-semibold backdrop-blur-sm text-main-light bg-primary-nightshade/70 shadow-lg">
             <ul className="w-full flex items-center justify-between">
                 {/* Dashboard */}
                 <NavLink to={'/'} className={`flex-center rounded-full transition-all duration-500 ease-in-out text-main-dark

@@ -2,24 +2,24 @@ import { ICONS } from "@assets/icons";
 
 const BackgroundPage = ({ children }) => {
     return (
-        <section className="relative w-full h-full flex items-center flex-col overflow-hidden">
-            <header className="w-full h-[50vh] flex-center flex-col">
-                <hgroup className="w-full h-full text-center flex-center items-start gap-1 mb-20">
-                    <i className="w-[66px] h-[66px] flex-center">
+        <main className="relative w-full h-screen p-3 flex flex-col justify-center items-center bg-primary-light">
+            <section className="w-full h-auto max-w-screen-sm flex flex-col justify-center items-center gap-4">
+                <header className="w-full flex flex-col items-center">
+                    <i className="w-[66px] h-[66px] flex justify-center items-center">
                         {ICONS.logo.exco()}
                     </i>
                     <div className="text-left">
-                        <h2 className="flex flex-col justify-center items-start leading-5 text-2xl font-bold text-primary-nightshade">Exco</h2>
-                        <p className="w-full text-primary-nightshade">Control de Gastos</p>
+                        <h2 className="leading-5 text-2xl font-bold text-primary-nightshade">Exco</h2>
+                        <p className="text-primary-nightshade">Control de Gastos</p>
                     </div>
-                </hgroup>
-            </header>
+                </header>
 
+                <article className="w-full h-auto flex justify-center items-center">
+                    {children}
+                </article>
+            </section>
+        </main>
 
-            <article className="w-full h-[50vh] flex-center">
-                {children}
-            </article>
-        </section>
     )
 }
 

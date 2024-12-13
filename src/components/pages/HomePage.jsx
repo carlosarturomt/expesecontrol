@@ -421,8 +421,8 @@ export default function HomePage() {
                             </p>
                         </div>
 
-                        <div className="w-[48%] h-[130px] max-w-[300px] p-4 rounded-3xl flex flex-col items-start">
-                            <div className="flex-grow flex-center w-full pl-12">
+                        <div className="w-[48%] h-[130px] max-h-[130px] p-4 rounded-3xl flex flex-col items-start">
+                            <div className="flex-grow flex-center w-full h-full pl-12">
                                 <Pie
                                     data={categoryChartDataExpense}
                                     options={{
@@ -484,8 +484,8 @@ export default function HomePage() {
                             </p>
                         </div>
 
-                        <div className="w-[48%] h-[130px] max-w-[300px] p-4 rounded-3xl flex flex-col items-start">
-                            <div className="flex-grow flex-center w-full pl-12">
+                        <div className="w-[48%] h-[130px] max-h-[130px] p-4 rounded-3xl flex flex-col items-start">
+                            <div className="flex-grow flex-center w-full h-full pl-12">
                                 <Pie
                                     data={categoryIncomeChartData}
                                     options={{

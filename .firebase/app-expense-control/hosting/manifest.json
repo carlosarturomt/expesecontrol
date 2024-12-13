@@ -1,0 +1,76 @@
+{
+	"background_color": "#F3F4F6",
+	"dir": "ltr",
+	"display": "fullscreen",
+	"name": "Exco",
+	"orientation": "portrait",
+	"scope": "/",
+	"short_name": "Exco",
+	"start_url": "/",
+	"theme_color": "#F3F4F6",
+	"icons": [
+		{
+			"src": "/exco_bg_white.png",
+			"type": "image/x-icon"
+		},
+		{
+			"src": "/exco_bg_white.png",
+			"type": "image/png",
+			"sizes": "152x152",
+			"purpose": "maskable"
+		},
+		{
+			"src": "/exco_bg_white.png",
+			"type": "image/png",
+			"sizes": "192x192",
+			"purpose": "maskable"
+		},
+		{
+			"src": "/exco_bg_white.png",
+			"type": "image/png",
+			"sizes": "512x512",
+			"purpose": "maskable"
+		},
+		{
+			"src": "/exco_bg_white.png",
+			"type": "image/png",
+			"sizes": "152x152",
+			"purpose": "any"
+		},
+		{
+			"src": "/exco_bg_white.png",
+			"type": "image/png",
+			"sizes": "192x192",
+			"purpose": "any"
+		},
+		{
+			"src": "https://smu.mx/imgs/logo_smu-384.png",
+			"type": "image/png",
+			"sizes": "384x384",
+			"purpose": "any"
+		},
+		{
+			"src": "/exco_bg_white.png",
+			"type": "image/png",
+			"sizes": "512x512",
+			"purpose": "any"
+		}
+	],
+	"id": "mx.rnv-pepsico.app",
+	"launch_handler": {
+		"client_mode": "navigate-existing"
+	},
+	"screenshots": [
+		{
+			"src": "/ss_exco_dashboard.jpeg",
+			"sizes": "540x720",
+			"type": "image/jpg",
+			"platform": "wide"
+		}
+	],
+	"description": "EXCO",
+	"categories": ["business"],
+	"iarc_rating_id": "1234",
+	"lang": "es",
+	"prefer_related_applications": false
+}

@@ -8,6 +8,7 @@ const HomePage = lazy(() => import("@components/pages/HomePage"));
 const TransactionsPage = lazy(() => import("@components/pages/TransactionsPage"));
 const TransactionsGalleryPage = lazy(() => import("@components/pages/TransactionsGalleryPage"));
 const ProfilePage = lazy(() => import("@components/pages/ProfilePage"));
+const GastosDetallados = lazy(() => import("@components/pages/GastosDetallados"));
 const LoginPage = lazy(() => import("@components/pages/LoginPage"));
 const RegisterPage = lazy(() => import("@components/pages/RegisterPage"));
 const ErrorPage = lazy(() => import("@components/pages/ErrorPage"));
@@ -21,6 +22,7 @@ export const Routes = () => {
 				{ path: "/transactions", element: <TransactionsPage /> },
 				{ path: "/gallery", element: <TransactionsGalleryPage /> },
 				{ path: "/profile", element: <ProfilePage /> },
+				{ path: "/expenses", element: <GastosDetallados /> },
 			],
 		},
 		{ path: "/login", element: <LoginPage /> },

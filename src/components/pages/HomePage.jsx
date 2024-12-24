@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState } from "react";
+import { NavLink } from "react-router-dom";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { addDoc, collection, doc, updateDoc } from "firebase/firestore";
 import { db, storage } from "@services/firebase/config";
@@ -7,7 +8,7 @@ import useAuthRequired from "@hooks/useAuthRequired";
 import { Spinner } from "@components/atoms/Spinner";
 import { ICONS } from "@assets/icons";
 
-import { Bar, Line, Pie } from 'react-chartjs-2';
+import { Pie } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
     ArcElement,    // Para gráficas de tipo Pie
@@ -45,9 +46,9 @@ export default function HomePage() {
     const [filteredPaymentChartData, setFilteredPaymentChartData] = useState([]);
 
     const [totalIngresos, setTotalIngresos] = useState(0);
-    const [categoryIncomeValues, setCategoryIncomeValues] = useState([]);
-    const [categoryIncomeLabels, setCategoryIncomeLabels] = useState([]);
     const [categoryIncomeChartData, setCategoryIncomeChartData] = useState({});
+
+    const [categoryExpenseChartData, setCategoryExpenseChartData] = useState({});
 
     const [isIncome, setIsIncome] = useState(false);
 
@@ -79,11 +80,10 @@ export default function HomePage() {
         // Filtrar los gastos
         const gastosFiltrados = state.gastos.filter((gasto) => {
             const gastoDate = gasto.createdAt instanceof Date ? gasto.createdAt : gasto.createdAt.toDate();
-            //console.log("GastoDate:", gastoDate, "Dentro del rango:", gastoDate >= startDate && gastoDate <= endDate);
             return gastoDate >= startDate && gastoDate <= endDate;
         });
 
-        // Filtrar los gastos por tipo de pago
+        // Agrupar los gastos por tipo de pago
         const groupedByPaymentType = gastosFiltrados.reduce((acc, item) => {
             if (!acc[item.type]) {
                 acc[item.type] = 0;
@@ -92,11 +92,21 @@ export default function HomePage() {
             return acc;
         }, {});
 
-        // Extraer los tipos de pago y los valores para cada gráfico
+        // Agrupar los gastos por categoría
+        const groupedByCategoryExpense = gastosFiltrados.reduce((acc, item) => {
+            if (!acc[item.category]) acc[item.category] = 0;
+            acc[item.category] += parseFloat(item.gasto) || 0;
+            return acc;
+        }, {});
+
+        // Preparar datos para los gráficos
         const paymentLabels = Object.keys(groupedByPaymentType);
         const paymentValues = Object.values(groupedByPaymentType);
 
-        // Preparar los datos para los gráficos de pastel de Gastos
+        const categoryLabelsExpense = Object.keys(groupedByCategoryExpense);
+        const categoryValuesExpense = Object.values(groupedByCategoryExpense);
+
+        // Configurar datos del gráfico de tipo de pago
         const paymentChartData = {
             labels: paymentLabels,
             datasets: [
@@ -110,18 +120,29 @@ export default function HomePage() {
             ],
         };
 
+        // Actualizar estados para gráficos de gasto
         setFilteredPaymentValues(paymentValues);
         setFilteredPaymentLabels(paymentLabels);
         setFilteredPaymentChartData(paymentChartData);
         setFilteredGastos(gastosFiltrados);
 
-        // Calcular el total
-        const total = gastosFiltrados.reduce(
+        setTotalGastos(gastosFiltrados.reduce(
             (acc, gasto) => acc + (parseFloat(gasto.gasto) || 0),
             0
-        );
+        ));
 
-        setTotalGastos(total);
+        setCategoryExpenseChartData({
+            labels: categoryLabelsExpense,
+            datasets: [
+                {
+                    label: 'Gastos por Categoría',
+                    data: categoryValuesExpense,
+                    backgroundColor: ['#D3D6DB', '#D3D6DB', '#D3D6DB', '#D3D6DB', '#D3D6DB'],
+                    borderColor: '#fff',
+                    borderWidth: 1,
+                },
+            ],
+        });
 
         // Datos para el gráfico de ingresos
         const groupedByCategoryIncome = state.ingresos.reduce((acc, item) => {
@@ -133,8 +154,6 @@ export default function HomePage() {
         const categoryLabelsIncome = Object.keys(groupedByCategoryIncome);
         const categoryValuesIncome = Object.values(groupedByCategoryIncome);
 
-        setCategoryIncomeValues(categoryValuesIncome);
-        setCategoryIncomeLabels(categoryLabelsIncome);
         setCategoryIncomeChartData({
             labels: categoryLabelsIncome,
             datasets: [{
@@ -326,34 +345,6 @@ export default function HomePage() {
         }
     };
 
-    // Agrupar Gastos por categoría
-    const groupedByCategoryExpense = state.gastos.reduce((acc, item) => {
-        if (!acc[item.category]) {
-            acc[item.category] = 0;
-        }
-        acc[item.category] += parseFloat(item.gasto) || 0;
-        return acc;
-    }, {});
-
-
-    // Extraer las categorías y los valores para cada gráfico de Gastos
-    const categoryLabelsExpense = Object.keys(groupedByCategoryExpense);
-    const categoryValuesExpense = Object.values(groupedByCategoryExpense);
-
-    // Preparar los datos para los gráficos de pastel de Gastos
-    const categoryChartDataExpense = {
-        labels: categoryLabelsExpense,
-        datasets: [
-            {
-                label: 'Gastos por Categoría',
-                data: categoryValuesExpense,
-                backgroundColor: ['#D3D6DB', '#D3D6DB', '#D3D6DB', '#D3D6DB', '#D3D6DB'],
-                borderColor: '#fff',
-                borderWidth: 1,
-            }
-        ],
-    };
-
     const totalBudget = !loading && userData && userData.expenseControl && userData.expenseControl.budget
     const totalBudgetToSpent = !loading && userData && userData.expenseControl && userData.expenseControl.budget - totalGastos
     const percentSpent = totalBudgetToSpent * 100 / totalBudget
@@ -368,7 +359,7 @@ export default function HomePage() {
     }
 
     return (
-        <div>
+        <div className="mb-10">
             {/* Sección de Gastos Totales */}
             <section className="w-full max-w-screen-sm mt-6 py-3 flex flex-col items-center">
                 <p className="leading-3 text-main-dark/50">Gastos Totales</p>
@@ -407,7 +398,7 @@ export default function HomePage() {
                 <section className="w-full max-w-screen-sm py-3">
                     <h2 className="text-main-dark text-lg font-semibold mb-3">Resumen Mensual</h2>
 
-                    <aside className="w-full flex gap-[4%] h-full rounded-3xl mb-3 bg-white">
+                    <NavLink to="/expenses" className="w-full flex gap-[4%] h-full rounded-3xl mb-3 bg-white">
                         {/* Primer div con el texto */}
                         <div className="w-[48%] h-[130px] py-3 px-4 flex flex-col justify-between">
                             <p className="w-full text-main-primary text-center flex gap-1 font-bold">
@@ -424,52 +415,32 @@ export default function HomePage() {
                         <div className="w-[48%] h-[130px] max-h-[130px] p-4 rounded-3xl flex flex-col items-start">
                             <div className="flex-grow flex-center w-full h-full pl-12">
                                 <Pie
-                                    data={categoryChartDataExpense}
+                                    data={categoryExpenseChartData}
                                     options={{
                                         cutout: '55%',
                                         plugins: {
                                             tooltip: {
                                                 callbacks: {
                                                     label: (tooltipItem) => {
-                                                        return `${categoryLabelsExpense[tooltipItem.dataIndex]}: $${categoryValuesExpense[tooltipItem.dataIndex].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                                    }
-                                                }
+                                                        return `${categoryExpenseChartData.labels[tooltipItem.dataIndex]}: $${categoryExpenseChartData.datasets[0].data[tooltipItem.dataIndex].toLocaleString("es-MX", {
+                                                            style: "decimal",
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2,
+                                                        })}`;
+                                                    },
+                                                },
                                             },
                                             legend: {
                                                 display: false,
-                                            }
-                                        }
+                                                //display: true, // Mostrar leyenda para categorías
+                                                //position: 'bottom',
+                                            },
+                                        },
                                     }}
                                 />
-                                {/* <span className={`absolute m-auto font-bold text-xl ${percentFree > 100 && 'text-primary-nightshade'}`}>{` ${percentFree.toFixed(0)}% `}</span> */}
-
-                                {/* <Bar
-                                    data={{
-                                        labels: categoryLabelsExpense,
-                                        datasets: [{
-                                            label: 'Gastos',
-                                            data: categoryValuesExpense,
-                                            backgroundColor: categoryChartDataExpense.datasets[0].backgroundColor,
-                                            borderRadius: 10,
-                                            borderWidth: 1,
-                                        }]
-                                    }}
-                                    options={{
-                                        responsive: true,
-                                        plugins: {
-                                            tooltip: {
-                                                callbacks: {
-                                                    label: (tooltipItem) => {
-                                                        return `${categoryLabelsExpense[tooltipItem.dataIndex]}: $${categoryValuesExpense[tooltipItem.dataIndex].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }}
-                                /> */}
                             </div>
                         </div>
-                    </aside>
+                    </NavLink>
 
                     <aside className="w-full flex gap-[4%] h-full rounded-3xl mb-3 bg-white">
                         {/* Primer div con el texto */}
@@ -480,7 +451,7 @@ export default function HomePage() {
                             </p>
                             <p className={`w-full font-semibold text-2xl mt-7`}>
                                 {`$${totalIngresos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                                <span className="text-xs text-primary-slate/70">ganados</span>
+                                <span className="text-xs text-primary-slate/70"> ganados</span>
                             </p>
                         </div>
 
@@ -494,83 +465,41 @@ export default function HomePage() {
                                             tooltip: {
                                                 callbacks: {
                                                     label: (tooltipItem) => {
-                                                        return `${categoryIncomeLabels[tooltipItem.dataIndex]}: $${categoryIncomeValues[tooltipItem.dataIndex].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                                    }
-                                                }
+                                                        return `${categoryIncomeChartData.labels[tooltipItem.dataIndex]}: $${categoryIncomeChartData.datasets[0].data[tooltipItem.dataIndex].toLocaleString("es-MX", {
+                                                            style: "decimal",
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2,
+                                                        })}`;
+                                                    },
+                                                },
                                             },
                                             legend: {
-                                                display: false,
-                                            }
-                                        }
+                                                display: false, // Mostrar leyenda para categorías
+                                                //display: true, // Mostrar leyenda para categorías
+                                                //position: 'bottom',
+                                            },
+                                        },
                                     }}
                                 />
                             </div>
                         </div>
                     </aside>
 
-                    {/* <div className="w-full p-4 bg-white rounded-3xl flex flex-col gap-4">
-                        <div className="w-full h-[300px]">
-                            <Bar
-                                data={{
-                                    labels: categoryLabelsExpense,
-                                    datasets: [{
-                                        label: 'Gastos',
-                                        data: categoryValuesExpense,
-                                        backgroundColor: categoryChartDataExpense.datasets[0].backgroundColor,
-                                        borderRadius: 10,
-                                        borderWidth: 1,
-                                    }]
-                                }}
-                                options={{
-                                    responsive: true,
-                                    plugins: {
-                                        tooltip: {
-                                            callbacks: {
-                                                label: (tooltipItem) => {
-                                                    return `${categoryLabelsExpense[tooltipItem.dataIndex]}: $${categoryValuesExpense[tooltipItem.dataIndex].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }}
-                            />
-                        </div>
-
-                        <div className="w-full space-y-2">
-                            {categoryLabelsExpense.map((category, index) => (
-                                <div key={category} className="flex justify-between items-center border-b border-main-dark/20 pb-2">
-                                    <span className="text-xs font-light capitalize text-main-dark" style={{ color: categoryChartDataExpense.datasets[0].backgroundColor[index] }}>
-                                        {
-                                            category == 'feeding' && 'Alimentación y Bebidas' ||
-                                            category == 'transportation' && 'Transporte' ||
-                                            category == 'personalCare' && 'Ropa y Cuidado Personal' ||
-                                            category == 'entertainment' && 'Entretenimiento y Ocio' ||
-                                            category == 'housing' && 'Vivienda' ||
-                                            category == 'health' && 'Salud y Bienestar' ||
-                                            category
-                                        }
-                                    </span>
-                                    <span className="text-sm text-main-highlight">
-                                        ${categoryValuesExpense[index].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div> */}
-
                     <aside className="w-full flex flex-wrap items-stretch gap-[4%]">
-                        <div className={`flex flex-col bg-white rounded-3xl py-3 px-4 ${percentSpent < 0 ? ' items-start w-[48%] max-w-[300px]' : ' w-[48%] max-w-[300px]'}`}>
+                        <div className={`flex flex-col bg-white rounded-3xl py-3 px-4 ${percentSpent < 0 ? ' hidden ' : ' w-[48%] max-w-[300px]'}`}>
                             <span className="font-light text-xs text-primary-slate">Presupuesto Libre</span>
+
                             <span className="font-semibold text-xl text-main-dark"> {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalBudget - totalGastos)}
                             </span>
                         </div>
-                        <div className={`flex flex-col bg-white rounded-3xl py-3 px-4 ${percentSpent < 0 ? ' items-start w-[48%] max-w-[300px]' : ' w-[48%] max-w-[300px]'}`}>
+
+                        <div className={`flex flex-col bg-white rounded-3xl py-3 px-4 ${percentSpent < 0 ? ' items-start w-full' : ' w-[48%] max-w-[300px]'}`}>
                             <span className="font-light text-xs text-primary-slate">Gastos Totales</span>
                             <span className="font-semibold text-xl text-main-dark">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                     </aside>
 
-                    <aside className="w-full flex flex-wrap items-stretch gap-[4%]">
+                    <aside className="w-full flex flex-wrap items-stretch gap-[4%] mt-3">
                         <div className={`${(totalBudgetToSpent) < 0 ? 'bg-primary-platinum' : 'bg-white hidden'} ${percentSpent < 0 ? 'w-[48%] max-w-[300px]' : 'w-full'} rounded-3xl p-4 flex justify-between items-center`}>
                             <span className="text-main-dark">Saldo</span>
                             <span className={`${totalBudgetToSpent < 0 ? 'text-main-primary' : 'text-main-highlight'} font-semibold`}>
@@ -631,96 +560,8 @@ export default function HomePage() {
                             </div>
                         ))}
                     </aside>
-
-                    {/* <aside className="w-full aspect-auto mb-16">
-                        <div className="w-full bg-white p-4 rounded-3xl h-full flex flex-col items-start">
-                            <div className="w-full flex-grow flex justify-center">
-                                <Line
-                                    data={{
-                                        labels: categoryLabelsIncome, // Usar categoryLabelsIncome directamente
-                                        datasets: [{
-                                            label: 'Ingresos por Categoría',
-                                            data: categoryValuesIncome, // Usar categoryValuesIncome directamente
-                                            borderColor: '#00A86B', // Color de la línea
-                                            backgroundColor: 'rgba(77, 143, 246, 0.2)', // Color de fondo de la línea
-                                            fill: true, // Rellenar el área debajo de la línea
-                                            tension: 0.4, // Suavizado de la línea
-                                        }]
-                                    }}
-                                    options={{
-                                        responsive: true,
-                                        plugins: {
-                                            tooltip: {
-                                                callbacks: {
-                                                    label: (tooltipItem) => {
-                                                        return `${categoryLabelsIncome[tooltipItem.dataIndex]}: $${categoryValuesIncome[tooltipItem.dataIndex].toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                                    }
-                                                }
-                                            },
-                                            legend: {
-                                                display: false, // No mostrar leyenda
-                                            }
-                                        },
-                                        scales: {
-                                            x: {
-                                                grid: {
-                                                    display: false, // No mostrar líneas de la cuadrícula en el eje X
-                                                }
-                                            },
-                                            y: {
-                                                ticks: {
-                                                    callback: function (value) {
-                                                        return `$${value.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }}
-                                />
-
-                            </div>
-                            <p className="text-main-dark text-center sm:text-left flex flex-col items-start font-light uppercase text-xs mt-2">
-                                Ingresos <span className="font-semibold text-base text-primary-blue">Totales</span>
-                            </p>
-                        </div>
-                    </aside> */}
                 </section>
             }
-
-            {/* Sección de Últimos Gastos */}
-            {/* {filteredGastos.length > 0 &&
-                <section className="w-full max-w-screen-sm py-3 mb-20">
-                    <h2 className="text-main-dark text-lg font-semibold mb-4">Últimos Gastos</h2>
-                    <ul className="space-y-3">
-                        {state.loading ? (
-                            <Spinner bgTheme={true} />
-                        ) : filteredGastos.length > 0 ? (
-                            filteredGastos
-                                .sort((a, b) => {
-                                    const dateA = a.createdAt instanceof Date ? a.createdAt : a.createdAt.toDate();
-                                    const dateB = b.createdAt instanceof Date ? b.createdAt : b.createdAt.toDate();
-                                    return dateB.getTime() - dateA.getTime(); // Ordenar por fecha descendente
-                                })
-                                .slice(0, 6) // Mostrar los primeros 6
-                                .map((gasto) => (
-                                    <SwipeableCard
-                                        key={gasto.id}
-                                        context={userData}
-                                        data={gasto}
-                                        onEdit={() => handleEdit(gasto.id)}
-                                        onDelete={() => handleDelete(gasto.id, gasto, gasto.image &&
-                                            gasto.image.name)}
-                                        expandedGastoId={expandedGastoId}
-                                        onCardClick={handleCardClick}
-                                    />
-                                ))
-                        ) : (
-                            <li className="flex justify-between items-center bg-white rounded-3xl p-4">
-                                <span className="text-main-dark font-medium">No hay gastos registrados</span>
-                            </li>
-                        )}
-                    </ul>
-                </section>} */}
 
             {
                 state.isModalOpen && (

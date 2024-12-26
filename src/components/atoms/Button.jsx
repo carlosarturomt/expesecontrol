@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { auth } from "@services/firebase/config";
 import { ICONS } from "@assets/icons"
@@ -145,6 +145,30 @@ function FilterButton({ items = [], label }) {
 	const activatorRef = useRef(null);
 	const [isOpen, setIsOpen] = useState(false);
 
+	const handleClickOutside = (event) => {
+		if (activatorRef.current && !activatorRef.current.contains(event.target)) {
+			setTimeout(() => {
+				setIsOpen(false);
+			}, "100");
+		}
+	};
+
+	const handleEscape = (event) => {
+		if (event.key === "Escape" && isOpen) {
+			setIsOpen(false);
+		}
+	};
+
+	useEffect(() => {
+		document.addEventListener("mousedown", handleClickOutside);
+		document.addEventListener("keydown", handleEscape);
+
+		return () => {
+			document.removeEventListener("mousedown", handleClickOutside);
+			document.removeEventListener("keydown", handleEscape);
+		};
+	});
+
 	return (
 		<div className={"relative inline-block"}>
 			<button
@@ -155,29 +179,6 @@ function FilterButton({ items = [], label }) {
 				ref={activatorRef}
 			>
 				{label}
-				{/* {isOpen ? (
-					<svg
-						height="24"
-						fill="rgb(255,255,255)"
-						viewBox="0 0 24 24"
-						width="24"
-						xmlns="http://www.w3.org/2000/svg"
-					>
-						<path d="m0 0h24v24h-24z" fill="none" />
-						<path d="m7.41 15.41 4.59-4.58 4.59 4.58 1.41-1.41-6-6-6 6z" />
-					</svg>
-				) : (
-					<svg
-						height="24"
-						fill="rgb(255,255,255)"
-						viewBox="0 0 24 24"
-						width="24"
-						xmlns="http://www.w3.org/2000/svg"
-					>
-						<path d="m0 0h24v24h-24z" fill="none" />
-						<path d="m7.41 8.59 4.59 4.58 4.59-4.58 1.41 1.41-6 6-6-6z" />
-					</svg>
-				)} */}
 			</button>
 
 			<ul

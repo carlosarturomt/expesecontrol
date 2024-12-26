@@ -2,6 +2,12 @@ import { useContext, useEffect, useState } from "react";
 import { UserDataContext } from "@context/userDataContext";
 import { Bar, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title, BarElement } from 'chart.js';
+import { FilterButton, SwipeableCard } from "../atoms/Button";
+import { deleteDoc, doc, getDoc } from "firebase/firestore";
+import { db, storage } from "@services/firebase/config";
+import { deleteObject, ref } from "firebase/storage";
+import { ICONS } from "@assets/icons";
+
 
 // Registrar los elementos necesarios en ChartJS
 ChartJS.register(
@@ -17,11 +23,14 @@ ChartJS.register(
 );
 
 export default function GastosDetallados() {
-    const { state, loading, userData } = useContext(UserDataContext);
+    const { loading, userAuth, userData, state, setState } = useContext(UserDataContext);
     const [filteredGastos, setFilteredGastos] = useState([]);
     const [paymentChartData, setPaymentChartData] = useState({});
     const [chartData, setChartData] = useState(null); // Iniciar como null para control de carga
     const [period, setPeriod] = useState("current");
+    const [expandedGastoId, setExpandedGastoId] = useState(null);
+    const [filterText, setFilterText] = useState('');
+    const [totalGastos, setTotalGastos] = useState(0);
 
     const paymentTypeMapping = {
         card1: userData && userData.paymentTypes && userData.paymentTypes.card1,
@@ -54,7 +63,11 @@ export default function GastosDetallados() {
                 endDate = new Date(currentYear, 11, 31);
                 break;
             case "all":
-                setFilteredGastos(state.gastos);
+                //setFilteredGastos(state.gastos);
+                setFilteredGastos(state.gastos
+                    .filter(gasto => gasto.title.toLowerCase().includes(filterText.toLowerCase()) || gasto.remarks.toLowerCase().includes(filterText.toLowerCase()) || gasto.category.toLowerCase().includes(filterText.toLowerCase()))
+                    .sort((a, b) => b.createdAt - a.createdAt));
+
                 return;
             default:
                 startDate = new Date(currentYear, currentMonth - (currentDay < cutoffDay ? 1 : 0), cutoffDay);
@@ -63,10 +76,18 @@ export default function GastosDetallados() {
 
         const gastosFiltrados = state.gastos.filter((gasto) => {
             const gastoDate = gasto.createdAt instanceof Date ? gasto.createdAt : gasto.createdAt.toDate();
+
             return gastoDate >= startDate && gastoDate <= endDate;
         });
-        setFilteredGastos(gastosFiltrados);
-    }, [state.gastos, userData, period, loading]);
+
+        setTotalGastos(gastosFiltrados.reduce(
+            (acc, gasto) => acc + (parseFloat(gasto.gasto) || 0),
+            0
+        ));
+
+        setFilteredGastos(gastosFiltrados.filter(gasto => gasto.title.toLowerCase().includes(filterText.toLowerCase()) || gasto.remarks.toLowerCase().includes(filterText.toLowerCase()) || gasto.category.toLowerCase().includes(filterText.toLowerCase()))
+            .sort((a, b) => b.createdAt - a.createdAt));
+    }, [state.gastos, userData, period, loading, filterText]);
 
     useEffect(() => {
         if (filteredGastos.length === 0) {
@@ -117,8 +138,6 @@ export default function GastosDetallados() {
         const paymentLabels = Object.keys(groupedByPaymentType);
         const paymentValues = Object.values(groupedByPaymentType);
 
-
-
         const mappedPaymentLabels = paymentLabels.map((paymentType) => {
             return paymentTypeMapping[paymentType] || paymentType; // En caso de que no exista el tipo, usar el label original
         });
@@ -139,14 +158,160 @@ export default function GastosDetallados() {
 
         setPaymentChartData(chartData);
         setChartData(newChartData);
-    }, [filteredGastos]);
+    }, [filteredGastos, filterText]);
+
+    const handleEdit = async (id) => {
+        try {
+            const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
+            const gastoSnap = await getDoc(gastoRef);
+
+            if (gastoSnap.exists()) {
+                const gastoData = gastoSnap.data();
+
+                setState((prev) => ({
+                    ...prev,
+                    gasto: gastoData?.gasto || '',
+                    title: gastoData?.title || '',
+                    remarks: gastoData?.remarks || '',
+                    category: gastoData?.category || '',
+                    type: gastoData?.type || '',
+                    date: gastoData?.createdAt
+                        ? gastoData.createdAt.toDate().toISOString().substring(0, 10)
+                        : '',
+                    fileURL: gastoData?.fileURL || '',
+                    isModalOpen: true,
+                    currentGastoId: id,
+                }));
+            } else {
+                console.error(`El gasto con ID: ${id} no existe.`);
+            }
+        } catch (error) {
+            console.error("Error al obtener los datos del gasto:", error);
+        }
+    };
+
+    const handleDelete = async (id, gasto, imageName) => {
+        const confirmDelete = window.confirm(
+            `¿Estás seguro de que deseas eliminar el gasto "${gasto.title}" de $${gasto.gasto}?`
+        );
+
+        if (confirmDelete) {
+            try {
+                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
+
+                // Verificar que imageName esté definido y no vacío antes de intentar eliminar la imagen
+                if (imageName && imageName.trim() !== "") {
+                    const storageRef = ref(storage, `userFiles/${userAuth.username}/${imageName}`);
+                    try {
+                        await deleteObject(storageRef);
+                        console.log("Imagen asociada eliminada de Storage.");
+                    } catch (error) {
+                        console.error("Error al eliminar la imagen de Storage: ", error);
+                    }
+                } else {
+                    console.log("No se proporcionó una imagen para eliminar.");
+                }
+
+                // Elimina el documento del gasto en Firestore
+                await deleteDoc(gastoRef);
+                console.log("Gasto eliminado correctamente.");
+
+                // Actualiza el estado local en lugar de recargar la página
+                setState((prev) => ({
+                    ...prev,
+                    gastos: prev.gastos.filter((g) => g.id !== id), // Filtra el gasto eliminado
+                }));
+            } catch (error) {
+                console.error("Error al eliminar el gasto: ", error);
+                alert("No se pudo eliminar el gasto. Intenta nuevamente.");
+            }
+        }
+    };
+
+    const handleCardClick = (id) => {
+        setExpandedGastoId(expandedGastoId === id ? null : id);
+    };
+
+    const handleFilter = (e) => {
+        const value = e.target.value;
+
+        // Actualizar el filtro de texto
+        if (value !== undefined) {
+            setFilterText(value);
+        }
+    };
+
+    const items_filter = [
+        {
+            slug: handleFilter,
+            label: "Todos",
+            anchor: "",
+        },
+        {
+            slug: handleFilter,
+            label: "Alimentación y Bebidas",
+            anchor: 'feeding',
+        },
+        {
+            slug: handleFilter,
+            label: "Transporte",
+            anchor: "transportation",
+        },
+        {
+            slug: handleFilter,
+            label: "Salud y Bienestar",
+            anchor: "health",
+        },
+        {
+            slug: handleFilter,
+            label: "Gastos de Educación o Trabajo",
+            anchor: "educationJob",
+        },
+        {
+            slug: handleFilter,
+            label: "Vivienda",
+            anchor: "housing",
+        },
+        {
+            slug: handleFilter,
+            label: "Entretenimiento y Ocio",
+            anchor: "entertainment",
+        },
+        {
+            slug: handleFilter,
+            label: "Ropa y Cuidado Personal",
+            anchor: "personalCare",
+        },
+    ];
 
     return (
         <section className="container mx-auto p-4 mb-20">
-            <h1 className="text-xl font-bold mb-4">Detalles de Gastos</h1>
-
+            <div className="relative py-2 mb-2 flex items-center">
+                <div className="w-full flex-center pl-4 rounded-3xl bg-main-dark/5">
+                    <i className="flex-center w-6 h-6 opacity-40">
+                        {
+                            ICONS.search.border("#1C1C1E")
+                        }
+                    </i>
+                    <input
+                        type="text"
+                        placeholder="Filtrar gastos..."
+                        value={filterText}
+                        onChange={(e) => setFilterText(e.target.value)}
+                        className="w-full h-full pl-1 py-4 bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
+                        required
+                    />
+                    <FilterButton
+                        label={
+                            <i className="flex-center w-6 h-6">
+                                {ICONS.filter.fill("#C2185B")}
+                            </i>}
+                        items={items_filter}
+                    />
+                </div>
+            </div>
             {/* Filtros */}
-            <div className="mb-4">
+            <div className="flex  items-center gap-3 mb-4">
                 <select
                     value={period}
                     onChange={(e) => setPeriod(e.target.value)}
@@ -157,7 +322,16 @@ export default function GastosDetallados() {
                     <option value="year">Año Actual</option>
                     <option value="all">Todos los Gastos</option>
                 </select>
+
+                <p className="text-xl font-medium text-main-dark">
+                    ${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
             </div>
+
+            <hgroup className="mb-2">
+                <h1 className="text-main-dark py-2 text-lg font-semibold border-b border-main-dark/20">Detalles de Gastos</h1>
+                <p className="py-2 text-sm font-light text-main-dark/50">{filteredGastos.length} Resultados</p>
+            </hgroup>
 
             {/* Gráficos */}
             <div className="flex gap-4 mb-4">
@@ -178,8 +352,31 @@ export default function GastosDetallados() {
                 )}
             </div>
 
+            <h2 className="text-lg font-bold mb-2">Listado de Gastos</h2>
+
             {/* Detalle de Gastos */}
-            <div className="overflow-x-auto">
+            <ul className="space-y-3">
+                {filteredGastos
+                    .sort((a, b) => {
+                        const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+                        const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+                        return dateB - dateA; // De mayor a menor, para mostrar los más recientes primero
+                    })
+                    .map((gasto) => (
+                        <SwipeableCard
+                            key={gasto.id}
+                            context={userData}
+                            data={gasto}
+                            onEdit={() => handleEdit(gasto.id)}
+                            onDelete={() => handleDelete(gasto.id, gasto, gasto.image &&
+                                gasto.image.name)}
+                            expandedGastoId={expandedGastoId}
+                            onCardClick={handleCardClick}
+                        />
+                    ))}
+            </ul>
+
+            {/* <div className="overflow-x-auto">
                 <h2 className="text-lg font-bold mb-2">Listado de Gastos</h2>
                 <table className="w-full table-auto border-collapse ">
                     <thead>
@@ -211,7 +408,7 @@ export default function GastosDetallados() {
                             ))}
                     </tbody>
                 </table>
-            </div>
+            </div> */}
         </section>
     );
 }

@@ -35,7 +35,6 @@ ChartJS.register(
     BarElement // Registra el BarElement
 );
 
-
 export default function HomePage() {
     const { isAuthenticated } = useAuthRequired("/register", "/");
     const { loading, userAuth, userData, state, setState } = useContext(UserDataContext);
@@ -398,7 +397,7 @@ export default function HomePage() {
                 <section className="w-full max-w-screen-sm py-3">
                     <h2 className="text-main-dark text-lg font-semibold mb-3">Resumen Mensual</h2>
 
-                    <NavLink to="/expenses" className="w-full flex gap-[4%] h-full rounded-3xl mb-3 bg-white">
+                    <NavLink to="/expenses/all" className="w-full flex gap-[4%] h-full rounded-3xl mb-3 bg-white">
                         {/* Primer div con el texto */}
                         <div className="w-[48%] h-[130px] py-3 px-4 flex flex-col justify-between">
                             <p className="w-full text-main-primary text-center flex gap-1 font-bold">
@@ -442,7 +441,7 @@ export default function HomePage() {
                         </div>
                     </NavLink>
 
-                    <aside className="w-full flex gap-[4%] h-full rounded-3xl mb-3 bg-white">
+                    <NavLink to="/incomes" className="w-full flex gap-[4%] h-full rounded-3xl mb-3 bg-white">
                         {/* Primer div con el texto */}
                         <div className="w-[48%] h-[130px] py-3 px-4 flex flex-col justify-between">
                             <p className="w-full text-main-highlight/70 text-center flex gap-1 font-bold">
@@ -483,7 +482,7 @@ export default function HomePage() {
                                 />
                             </div>
                         </div>
-                    </aside>
+                    </NavLink>
 
                     <aside className="w-full flex flex-wrap items-stretch gap-[4%]">
                         <div className={`flex flex-col bg-white rounded-3xl py-3 px-4 ${percentSpent < 0 ? ' hidden ' : ' w-[48%] max-w-[300px]'}`}>
@@ -493,10 +492,10 @@ export default function HomePage() {
                             </span>
                         </div>
 
-                        <div className={`flex flex-col bg-white rounded-3xl py-3 px-4 ${percentSpent < 0 ? ' items-start w-full' : ' w-[48%] max-w-[300px]'}`}>
+                        <NavLink to="/expenses/gastos" className={`flex flex-col bg-white rounded-3xl py-3 px-4 ${percentSpent < 0 ? ' items-start w-full' : ' w-[48%] max-w-[300px]'}`}>
                             <span className="font-light text-xs text-primary-slate">Gastos Totales</span>
                             <span className="font-semibold text-xl text-main-dark">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        </div>
+                        </NavLink>
                     </aside>
 
                     <aside className="w-full flex flex-wrap items-stretch gap-[4%] mt-3">
@@ -524,7 +523,7 @@ export default function HomePage() {
 
                     <aside className="w-full flex flex-wrap items-start gap-[4%] my-3">
                         {filteredPaymentLabels.map((paymentType, index) => (
-                            <div key={paymentType} className="w-[48%] max-w-[300px] mb-3">
+                            <NavLink to="/expenses/payments" key={paymentType} className="w-[48%] max-w-[300px] mb-3">
                                 <div className="bg-white py-3 px-4 rounded-3xl h-full flex flex-col items-start">
                                     {/* Tarjeta con el total de cada tipo de pago */}
                                     <div className="flex-grow flex gap-4 w-full">
@@ -557,7 +556,7 @@ export default function HomePage() {
                                         </i>
                                     </div>
                                 </div>
-                            </div>
+                            </NavLink>
                         ))}
                     </aside>
                 </section>

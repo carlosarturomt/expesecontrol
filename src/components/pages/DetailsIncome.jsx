@@ -7,7 +7,6 @@ import { addDoc, collection, deleteDoc, doc, getDoc, updateDoc } from "firebase/
 import { db, storage } from "@services/firebase/config";
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { ICONS } from "@assets/icons";
-import { useParams } from "react-router-dom";
 
 // Registrar los elementos necesarios en ChartJS
 ChartJS.register(
@@ -22,20 +21,18 @@ ChartJS.register(
     BarElement
 );
 
-export default function GastosDetallados() {
+export default function DetailsIncome() {
     const { loading, userAuth, userData, state, setState } = useContext(UserDataContext);
-    const [filteredGastos, setFilteredGastos] = useState([]);
+    const [filteredIncomes, setFilteredIncomes] = useState([]);
     const [paymentChartData, setPaymentChartData] = useState({});
     const [chartData, setChartData] = useState(null); // Iniciar como null para control de carga
     const [period, setPeriod] = useState("current");
-    const [expandedGastoId, setExpandedGastoId] = useState(null);
+    const [expandedIncomeId, setExpandedIncomeId] = useState(null);
     const [filterText, setFilterText] = useState('');
-    const [totalGastos, setTotalGastos] = useState(0);
+    const [totalIncomes, setTotalIncomes] = useState(0);
     const [charts, setCharts] = useState(true);
     const [chartCategory, setChartCategory] = useState(true);
     const [chartPaymentType, setChartPaymentType] = useState(true);
-
-    const { anchor } = useParams();
 
     const paymentTypeMapping = {
         card1: userData && userData.paymentTypes && userData.paymentTypes.card1,
@@ -46,35 +43,8 @@ export default function GastosDetallados() {
         other: userData && userData.paymentTypes && userData.paymentTypes.other,
         cash: 'Efectivo',
     };
-
     useEffect(() => {
-        // Ajustar qué gráficos mostrar en función del ancla
-        switch (anchor) {
-            case "all":
-                setCharts(true);
-                setChartCategory(true);
-                setChartPaymentType(true);
-                break;
-            case "gastos":
-                setCharts(false);
-                setChartCategory(false);
-                setChartPaymentType(false);
-                break;
-            case "payments":
-                setCharts(false);
-                setChartCategory(false);
-                setChartPaymentType(true);
-                break;
-            default:
-                setCharts(true);
-                setChartCategory(true);
-                setChartPaymentType(true);
-                break;
-        }
-    }, [anchor]);
-
-    useEffect(() => {
-        if (!userData || !state.gastos || loading) return;
+        if (!userData || !state.ingresos || loading) return;
 
         const cutoffDay = parseInt(userData?.expenseControl?.cutoffDay, 10) || 12;
         const today = new Date();
@@ -94,8 +64,8 @@ export default function GastosDetallados() {
                 endDate = new Date(currentYear, 11, 31);
                 break;
             case "all":
-                setFilteredGastos(state.gastos
-                    .filter(gasto => gasto.title.toLowerCase().includes(filterText.toLowerCase()) || gasto.remarks.toLowerCase().includes(filterText.toLowerCase()) || gasto.category.toLowerCase().includes(filterText.toLowerCase()))
+                setFilteredIncomes(state.ingresos
+                    .filter(income => income.title.toLowerCase().includes(filterText.toLowerCase()) || income.remarks.toLowerCase().includes(filterText.toLowerCase()) || income.category.toLowerCase().includes(filterText.toLowerCase()))
                     .sort((a, b) => b.createdAt - a.createdAt));
                 return;
             default:
@@ -103,30 +73,30 @@ export default function GastosDetallados() {
                 endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, cutoffDay - 1, 23, 59, 59);
         }
 
-        const gastosFiltrados = state.gastos.filter((gasto) => {
-            const gastoDate = gasto.createdAt instanceof Date ? gasto.createdAt : gasto.createdAt.toDate();
+        const incomesFiltered = state.ingresos.filter((income) => {
+            const incomeDate = income.createdAt instanceof Date ? income.createdAt : income.createdAt.toDate();
 
-            return gastoDate >= startDate && gastoDate <= endDate;
+            return incomeDate >= startDate && incomeDate <= endDate;
         });
 
-        setTotalGastos(gastosFiltrados.reduce(
-            (acc, gasto) => acc + (parseFloat(gasto.gasto) || 0),
+        setTotalIncomes(incomesFiltered.reduce(
+            (acc, income) => acc + (parseFloat(income.ingreso) || 0),
             0
         ));
 
-        setFilteredGastos(gastosFiltrados.filter(gasto => gasto.title.toLowerCase().includes(filterText.toLowerCase()) || gasto.remarks.toLowerCase().includes(filterText.toLowerCase()) || gasto.category.toLowerCase().includes(filterText.toLowerCase()))
+        setFilteredIncomes(incomesFiltered.filter(income => income.title.toLowerCase().includes(filterText.toLowerCase()) || income.remarks.toLowerCase().includes(filterText.toLowerCase()) || income.category.toLowerCase().includes(filterText.toLowerCase()))
             .sort((a, b) => b.createdAt - a.createdAt));
-    }, [state.gastos, userData, period, loading, filterText]);
+    }, [state.ingresos, userData, period, loading, filterText]);
 
     useEffect(() => {
-        if (filteredGastos.length === 0) {
+        if (filteredIncomes.length === 0) {
             setChartData(null); // Resetear chartData si no hay datos
             return;
         }
 
-        const groupedByCategory = filteredGastos.reduce((acc, gasto) => {
-            if (!acc[gasto.category]) acc[gasto.category] = 0;
-            acc[gasto.category] += parseFloat(gasto.gasto) || 0;
+        const groupedByCategory = filteredIncomes.reduce((acc, income) => {
+            if (!acc[income.category]) acc[income.category] = 0;
+            acc[income.category] += parseFloat(income.ingreso) || 0;
             return acc;
         }, {});
 
@@ -148,7 +118,7 @@ export default function GastosDetallados() {
             labels: mappedCategoryLabels,
             datasets: [
                 {
-                    label: "Gastos por Categoría",
+                    label: "Ingresos por Categoría",
                     data: Object.values(groupedByCategory),
                     //backgroundColor: ["#C2185B", "#c12048", "#ba1354", "#bf2b6d", "#cb1048", "#ce0864"],
                     backgroundColor: [
@@ -175,11 +145,11 @@ export default function GastosDetallados() {
         };
 
         // Agrupar por tipo de pago
-        const groupedByPaymentType = filteredGastos.reduce((acc, item) => {
+        const groupedByPaymentType = filteredIncomes.reduce((acc, item) => {
             if (!acc[item.type]) {
                 acc[item.type] = 0;
             }
-            acc[item.type] += parseFloat(item.gasto) || 0;
+            acc[item.type] += parseFloat(item.ingreso) || 0;
             return acc;
         }, {});
 
@@ -195,7 +165,7 @@ export default function GastosDetallados() {
             labels: mappedPaymentLabels,
             datasets: [
                 {
-                    label: "Gastos por Tipo de Pago",
+                    label: "Ingresos por Tipo de Pago",
                     data: paymentValues,
                     backgroundColor: [
                         'rgba(201, 203, 207, 0.2)',
@@ -222,46 +192,46 @@ export default function GastosDetallados() {
 
         setPaymentChartData(chartData);
         setChartData(newChartData);
-    }, [filteredGastos, filterText]);
+    }, [filteredIncomes, filterText]);
 
     const handleEdit = async (id) => {
         try {
-            const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
-            const gastoSnap = await getDoc(gastoRef);
+            const ingresoRef = doc(db, "userPosts", userAuth.username, "ingresos", id);
+            const incomeSnap = await getDoc(ingresoRef);
 
-            if (gastoSnap.exists()) {
-                const gastoData = gastoSnap.data();
+            if (incomeSnap.exists()) {
+                const incomeData = incomeSnap.data();
 
                 setState((prev) => ({
                     ...prev,
-                    gasto: gastoData?.gasto || '',
-                    title: gastoData?.title || '',
-                    remarks: gastoData?.remarks || '',
-                    category: gastoData?.category || '',
-                    type: gastoData?.type || '',
-                    date: gastoData?.createdAt
-                        ? gastoData.createdAt.toDate().toISOString().substring(0, 10)
+                    ingreso: incomeData?.ingreso || '',
+                    title: incomeData?.title || '',
+                    remarks: incomeData?.remarks || '',
+                    category: incomeData?.category || '',
+                    type: incomeData?.type || '',
+                    date: incomeData?.createdAt
+                        ? incomeData.createdAt.toDate().toISOString().substring(0, 10)
                         : '',
-                    fileURL: gastoData?.fileURL || '',
+                    fileURL: incomeData?.fileURL || '',
                     isModalOpen: true,
-                    currentGastoId: id,
+                    currentIncomeId: id,
                 }));
             } else {
-                console.error(`El gasto con ID: ${id} no existe.`);
+                console.error(`El income con ID: ${id} no existe.`);
             }
         } catch (error) {
-            console.error("Error al obtener los datos del gasto:", error);
+            console.error("Error al obtener los datos del income:", error);
         }
     };
 
-    const handleDelete = async (id, gasto, imageName) => {
+    const handleDelete = async (id, income, imageName) => {
         const confirmDelete = window.confirm(
-            `¿Estás seguro de que deseas eliminar el gasto "${gasto.title}" de $${gasto.gasto}?`
+            `¿Estás seguro de que deseas eliminar el income "${income.title}" de $${income.ingreso}?`
         );
 
         if (confirmDelete) {
             try {
-                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
+                const ingresoRef = doc(db, "userPosts", userAuth.username, "ingresos", id);
 
                 // Verificar que imageName esté definido y no vacío antes de intentar eliminar la imagen
                 if (imageName && imageName.trim() !== "") {
@@ -276,24 +246,24 @@ export default function GastosDetallados() {
                     console.log("No se proporcionó una imagen para eliminar.");
                 }
 
-                // Elimina el documento del gasto en Firestore
-                await deleteDoc(gastoRef);
-                console.log("Gasto eliminado correctamente.");
+                // Elimina el documento del ingreso en Firestore
+                await deleteDoc(ingresoRef);
+                console.log("Ingreso eliminado correctamente.");
 
                 // Actualiza el estado local en lugar de recargar la página
                 setState((prev) => ({
                     ...prev,
-                    gastos: prev.gastos.filter((g) => g.id !== id), // Filtra el gasto eliminado
+                    ingresos: prev.ingresos.filter((g) => g.id !== id), // Filtra el ingreso eliminado
                 }));
             } catch (error) {
-                console.error("Error al eliminar el gasto: ", error);
-                alert("No se pudo eliminar el gasto. Intenta nuevamente.");
+                console.error("Error al eliminar el ingreso: ", error);
+                alert("No se pudo eliminar el ingreso. Intenta nuevamente.");
             }
         }
     };
 
     const handleCardClick = (id) => {
-        setExpandedGastoId(expandedGastoId === id ? null : id);
+        setExpandedIncomeId(expandedIncomeId === id ? null : id);
     };
 
     const handleFilter = (value) => {
@@ -306,7 +276,7 @@ export default function GastosDetallados() {
     const items_filterPeriod = [
         {
             slug: () => setPeriod('all'),
-            label: "Todos los gastos",
+            label: "Todos los ingresos",
             icon: ICONS.all.border("#1C1C1E")
         },
         {
@@ -405,7 +375,7 @@ export default function GastosDetallados() {
             }));
         } else {
             // Para otros tipos de input (como text)
-            const formattedValue = name === "gasto" ? formatCurrency(value) : value;
+            const formattedValue = name === "ingreso" ? formatCurrency(value) : value;
 
             setState((prev) => ({
                 ...prev,
@@ -432,12 +402,14 @@ export default function GastosDetallados() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
         setState(prev => ({ ...prev, isSubmitting: true }));
 
-        // Validar el valor del gasto
-        const gastoValue = parseFloat((state.gasto || "").toString().replace(/[^0-9.-]+/g, ""));
-        if (isNaN(gastoValue) || gastoValue <= 0) {
-            setState(prev => ({ ...prev, error: "Por favor, ingresa un gasto válido.", isSubmitting: false }));
+        // Validar el valor del ingreso
+        const ingresoValue = parseFloat((state.ingreso || "").toString().replace(/[^0-9.-]+/g, ""));
+        if (isNaN(ingresoValue) || ingresoValue <= 0) {
+            setState(prev => ({ ...prev, error: "Por favor, ingresa un ingresp válido.", isSubmitting: false }));
+            console.log('Por favor, ingresa un ingresp válido.');
             return;
         }
 
@@ -503,7 +475,7 @@ export default function GastosDetallados() {
 
             // Prepara el objeto de datos a guardar
             const dataToSave = {
-                gasto: gastoValue,
+                ingreso: ingresoValue,
                 title: state.title,
                 remarks: state.remarks,
                 type: state.type,
@@ -519,18 +491,18 @@ export default function GastosDetallados() {
                 dataToSave.fileURL = fileURL;
             }
 
-            if (state.currentGastoId) {
-                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", String(state.currentGastoId));
-                await updateDoc(gastoRef, dataToSave);
+            if (state.currentIncomeId) {
+                const ingresoRef = doc(db, "userPosts", userAuth.username, "ingresos", String(state.currentIncomeId));
+                await updateDoc(ingresoRef, dataToSave);
             } else {
-                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos");
-                await addDoc(gastosRef, dataToSave);
+                const ingresosRef = collection(db, "userPosts", userAuth.username, "ingresos");
+                await addDoc(ingresosRef, dataToSave);
             }
 
             // Limpiar el estado después de la operación
             setState(prev => ({
                 ...prev,
-                gasto: "",
+                ingreso: "",
                 title: "",
                 remarks: "",
                 category: "",
@@ -538,7 +510,7 @@ export default function GastosDetallados() {
                 file: null,
                 isModalOpen: false,
                 error: "",
-                currentGastoId: null,
+                currentIncomeId: null,
             }));
 
             setTimeout(() => location.reload(), 1000)
@@ -561,7 +533,7 @@ export default function GastosDetallados() {
                     </i>
                     <input
                         type="text"
-                        placeholder="Filtrar gastos..."
+                        placeholder="Filtrar ingresos..."
                         value={filterText}
                         onChange={(e) => setFilterText(e.target.value)}
                         className="w-full h-full pl-1 py-4 bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
@@ -600,10 +572,10 @@ export default function GastosDetallados() {
             </aside>
 
             <hgroup className="mb-2">
-                <h1 className="text-main-dark py-2 text-lg font-semibold border-b border-main-dark/20">Detalles de Gastos</h1>
+                <h1 className="text-main-dark py-2 text-lg font-semibold border-b border-main-dark/20">Detalles de Ingresos</h1>
                 <div className="flex items-center justify-between">
-                    <p className="py-2 text-sm font-light text-main-dark/50">{filteredGastos.length} Resultados</p>
-                    <p className="py-2 text-sm font-light text-main-dark/50">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })} Gastados</p>
+                    <p className="py-2 text-sm font-light text-main-dark/50">{filteredIncomes.length} Resultados</p>
+                    <p className="py-2 text-sm font-light text-main-dark/50">${totalIncomes.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })} Gastados</p>
                 </div>
             </hgroup>
 
@@ -613,7 +585,7 @@ export default function GastosDetallados() {
                     <div className="w-full flex-center flex-col space-y-3">
                         {chartCategory &&
                             <div className="w-full p-4 flex justify-center flex-col rounded-3xl bg-main-dark/5">
-                                <h2 className="font-semibold mb-2">Gastos por categoría</h2>
+                                <h2 className="font-semibold mb-2">Intresos por categoría</h2>
                                 {charts ? <Bar
                                     data={chartData}
                                     options={{
@@ -642,7 +614,7 @@ export default function GastosDetallados() {
                         }
                         {chartPaymentType &&
                             <div className="w-full p-4 flex justify-center flex-col rounded-3xl bg-main-dark/5">
-                                <h2 className="font-semibold mb-2">Gastos por tipo de pago</h2>
+                                <h2 className="font-semibold mb-2">Intresos por tipo de pago</h2>
                                 {charts ? <Bar
                                     data={paymentChartData}
                                     options={{
@@ -678,62 +650,27 @@ export default function GastosDetallados() {
                 )}
             </div>
 
-            {/* <h2 className="text-lg font-bold mb-2">Listado de Gastos</h2>*/}
-            {/* Detalle de Gastos */}
+            {/* Detalle de Ingresos */}
             <ul className="space-y-3">
-                {filteredGastos
+                {filteredIncomes
                     .sort((a, b) => {
                         const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
                         const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
                         return dateB - dateA; // De mayor a menor, para mostrar los más recientes primero
                     })
-                    .map((gasto) => (
+                    .map((ingreso) => (
                         <SwipeableCard
-                            key={gasto.id}
+                            key={ingreso.id}
                             context={userData}
-                            data={gasto}
-                            onEdit={() => handleEdit(gasto.id)}
-                            onDelete={() => handleDelete(gasto.id, gasto, gasto.image &&
-                                gasto.image.name)}
-                            expandedGastoId={expandedGastoId}
+                            data={ingreso}
+                            onEdit={() => handleEdit(ingreso.id)}
+                            onDelete={() => handleDelete(ingreso.id, ingreso, ingreso.image &&
+                                ingreso.image.name)}
+                            expandedGastoId={expandedIncomeId}
                             onCardClick={handleCardClick}
                         />
                     ))}
             </ul>
-
-            {/* <div className="overflow-x-auto">
-                <h2 className="text-lg font-bold mb-2">Listado de Gastos</h2>
-                <table className="w-full table-auto border-collapse ">
-                    <thead>
-                        <tr className="text-sm bg-gray-200">
-                            <th className="border px-4 py-2">Categoría</th>
-                            <th className="border px-4 py-2">Monto</th>
-                            <th className="border px-4 py-2">Fecha</th>
-                            <th className="border px-4 py-2">Concepto</th>
-                            <th className="border px-4 py-2">Observaciones</th>
-                            <th className="border px-4 py-2">Tipo</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredGastos
-                            .sort((a, b) => {
-                                const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
-                                const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
-                                return dateB - dateA; // De mayor a menor, para mostrar los más recientes primero
-                            })
-                            .map((gasto) => (
-                                <tr key={gasto.id} className="border-t text-xs">
-                                    <td className="border px-4 py-2">{gasto.category}</td>
-                                    <td className="border px-4 py-2">${gasto.gasto.toFixed(2)}</td>
-                                    <td className="border px-4 py-2">{new Date(gasto.createdAt).toLocaleDateString()}</td>
-                                    <td className="border px-4 py-2">{gasto.title}</td>
-                                    <td className="border px-4 py-2">{gasto.remarks}</td>
-                                    <td className="border px-4 py-2">{paymentTypeMapping[gasto.type] || gasto.type}</td>
-                                </tr>
-                            ))}
-                    </tbody>
-                </table>
-            </div> */}
 
             {
                 state.isModalOpen && (
@@ -748,7 +685,7 @@ export default function GastosDetallados() {
                                         disabled={state.isSubmitting}
                                         className="p-2 text-main-highlight rounded hover:bg-main-primary-dark transition"
                                     >
-                                        {state.isSubmitting ? "Guardando..." : (state.currentGastoId ? "Actualizar" : "Agregar")}
+                                        {state.isSubmitting ? "Guardando..." : (state.currentIncomeId ? "Actualizar" : "Agregar")}
                                     </button>
                                 </div>
 
@@ -766,10 +703,10 @@ export default function GastosDetallados() {
                                         <div className="flex-center pt-2 py-2">
                                             $
                                             <input
-                                                name="gasto"
+                                                name="ingreso"
                                                 type="text" // Mantener como texto para manejar el formato
                                                 placeholder="$ $"
-                                                value={state.gasto}
+                                                value={state.ingreso}
                                                 onChange={handleChange}
                                                 onBlur={handleBlur} // Formato al perder el foco
                                                 className="w-full pl-1 bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
@@ -782,22 +719,22 @@ export default function GastosDetallados() {
                                     <div className="rounded-3xl p-4 mb-4 bg-main-light">
                                         <select name="type" value={state.type} onChange={handleChange} className="w-full bg-transparent outline-none">
                                             <option value="" hidden className="text-main-gray">Pago con</option>
-                                            {userData.paymentTypes.card1 &&
-                                                <option value={"card1"}>{userData.paymentTypes.card1}</option>}
-                                            {userData.paymentTypes.card2 &&
-                                                <option value={"card2"}>{userData.paymentTypes.card2}</option>
+                                            {userData.incomeControl.paymentTypes.type1 &&
+                                                <option value={"type1"}>{userData.incomeControl.paymentTypes.type1}</option>}
+                                            {userData.incomeControl.paymentTypes.type2 &&
+                                                <option value={"type2"}>{userData.incomeControl.paymentTypes.type2}</option>
                                             }
-                                            {userData.paymentTypes.card3 &&
-                                                <option value={"card3"}>{userData.paymentTypes.card3}</option>
+                                            {userData.incomeControl.paymentTypes.type3 &&
+                                                <option value={"type3"}>{userData.incomeControl.paymentTypes.type3}</option>
                                             }
-                                            {userData.paymentTypes.card4 &&
-                                                <option value={"card4"}>{userData.paymentTypes.card4}</option>
+                                            {userData.incomeControl.paymentTypes.type4 &&
+                                                <option value={"type4"}>{userData.incomeControl.paymentTypes.type4}</option>
                                             }
-                                            {userData.paymentTypes.card5 &&
-                                                <option value={"card5"}>{userData.paymentTypes.card5}</option>
+                                            {userData.incomeControl.paymentTypes.type5 &&
+                                                <option value={"type5"}>{userData.incomeControl.paymentTypes.type5}</option>
                                             }
-                                            {userData.paymentTypes.other &&
-                                                <option value={"other"}>{userData.paymentTypes.other}</option>
+                                            {userData.incomeControl.paymentTypes.other &&
+                                                <option value={"other"}>{userData.incomeControl.paymentTypes.other}</option>
                                             }
                                             <option value={"cash"}>Efectivo</option>
                                         </select>
@@ -805,14 +742,10 @@ export default function GastosDetallados() {
 
                                     <div className="rounded-3xl p-4 mb-4 bg-main-light">
                                         <select name="category" value={state.category} onChange={handleChange} className="w-full bg-transparent outline-none">
-                                            <option value="" hidden className="text-main-gray">Categorías</option>
-                                            <option value={"feeding"}>Alimentación y Bebidas</option>
-                                            <option value={"transportation"}>Transporte</option>
-                                            <option value={"health"}>Salud y Bienestar</option>
-                                            <option value={"educationJob"}>Educación o Trabajo</option>
-                                            <option value={"housing"}>Vivienda</option>
-                                            <option value={"entertainment"}>Entretenimiento y Ocio</option>
-                                            <option value={"personalCare"}>Ropa y Cuidado Personal</option>
+                                            <option value={"salary"}>Salario</option>
+                                            <option value={"business"}>Negocios</option>
+                                            <option value={"investment"}>Inversiones</option>
+                                            <option value={"other"}>Otros Ingresos</option>
                                         </select>
                                     </div>
 
@@ -827,7 +760,7 @@ export default function GastosDetallados() {
                                         />
                                     </div>
 
-                                    {!state.currentGastoId &&
+                                    {!state.currentIncomeId &&
                                         <div className="rounded-3xl p-4 mb-4 bg-main-light">
                                             <input
                                                 name="file"

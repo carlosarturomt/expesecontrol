@@ -144,6 +144,8 @@ function LogOutButton() {
 function FilterButton({ label, titleSectionOne, itemsSectionOne = [], titleSectionTwo, itemsSectionTwo = [] }) {
 	const activatorRef = useRef(null);
 	const [isOpen, setIsOpen] = useState(false);
+	const [selectedPeriod, setSelectedPeriod] = useState(null); // Para la sección 1
+	const [selectedCategory, setSelectedCategory] = useState(null); // Para la sección 2
 
 	const handleClickOutside = (event) => {
 		if (activatorRef.current && !activatorRef.current.contains(event.target)) {
@@ -176,6 +178,15 @@ function FilterButton({ label, titleSectionOne, itemsSectionOne = [], titleSecti
 		};
 	});
 
+	const handleSelectPeriod = (period) => {
+		setSelectedPeriod(period);
+	};
+
+	const handleSelectCategory = (category) => {
+		setSelectedCategory(category);
+	};
+
+
 	return (
 		<div className={"inline-block"}>
 			<button
@@ -188,7 +199,7 @@ function FilterButton({ label, titleSectionOne, itemsSectionOne = [], titleSecti
 				{label}
 			</button>
 
-			<div className={`absolute top-0 left-0 w-full h-full z-[100] bg-main-dark/80 ${isOpen
+			<div className={`absolute top-0 left-0 w-full h-screen z-[100] bg-main-dark/80 ${isOpen
 				? "block"
 				: "hidden"
 				}`}>
@@ -196,7 +207,7 @@ function FilterButton({ label, titleSectionOne, itemsSectionOne = [], titleSecti
 					<ul className="pb-2">
 						<li className="py-2 font-semibold text-main-dark">{titleSectionOne}</li>
 
-						{itemsSectionOne.map((item, index) => {
+						{/* {itemsSectionOne.map((item, index) => {
 							return (
 								<li
 									className={"text-sm"}
@@ -215,32 +226,53 @@ function FilterButton({ label, titleSectionOne, itemsSectionOne = [], titleSecti
 									</button>
 								</li>
 							);
-						})}
+						})} */}
+						{itemsSectionOne.map((item, index) => (
+							<li className={"text-sm"} key={index}>
+								<button
+									className={`flex px-3 items-center gap-2 text-left w-fit py-1 rounded-3xl ${selectedPeriod === item.label
+										? "border border-main-highlight/70 text-main-dark font-semibold"
+										: "text-main-dark hover:font-semibold"
+										}`}
+									value={item.label}
+									onClick={() => {
+										item.slug(); // Ejecuta la acción asociada
+										handleSelectPeriod(item.label);
+									}}
+								>
+									<i className="flex-center w-4 h-4">{item.icon}</i>
+									{item.label}
+									{selectedPeriod === item.label &&
+										<i className="flex-center w-4 h-4">{ICONS.tick.border('#00A86B')}</i>
+									}
+								</button>
+							</li>
+						))}
 					</ul>
 
 					<ul>
 						<li className="py-2 font-semibold border-t border-main-dark/20 text-main-dark">{titleSectionTwo}</li>
-
-						{itemsSectionTwo.map((item, index) => {
-							return (
-								<li
-									className={"text-sm"}
-									key={index}
-									onClick={() => setIsOpen(!isOpen)}
+						{itemsSectionTwo.map((item, index) => (
+							<li className={"text-sm"} key={index}>
+								<button
+									className={`flex px-3 items-center gap-2 text-left w-fit py-1 rounded-3xl ${selectedCategory === item.anchor
+										? "border border-main-highlight/70 text-main-dark font-semibold"
+										: "text-main-dark hover:font-semibold"
+										}`}
+									value={item.anchor}
+									onClick={() => {
+										item.slug(); // Ejecuta la acción asociada
+										handleSelectCategory(item.anchor);
+									}}
 								>
-									<button
-										className="flex items-center gap-2 text-left w-full py-1 rounded-3xl text-main-dark hover:font-semibold"
-										value={item.anchor}
-										onClick={item.slug}
-									>
-										<i className="flex-center w-4 h-4">
-											{item.icon}
-										</i>
-										{item.label}
-									</button>
-								</li>
-							);
-						})}
+									<i className="flex-center w-4 h-4">{item.icon}</i>
+									{item.label}
+									{selectedCategory === item.anchor &&
+										<i className="flex-center w-4 h-4">{ICONS.tick.border('#00A86B')}</i>
+									}
+								</button>
+							</li>
+						))}
 					</ul>
 				</div>
 			</div>
@@ -289,8 +321,13 @@ function SwipeableCard({ context, data, onEdit, onDelete, expandedGastoId, onCar
 				<div className={`flex justify-between items-center p-4 ${swipeDistance == -150 && 'w-11/12'}`}
 					onClick={() => onCardClick(data.id)}>
 					<span className="text-main-dark font-medium">{data.title}</span>
-					<span className="text-main-primary font-semibold">
-						-{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(data.gasto)}
+					<span className={`font-semibold ${data.gasto ? 'text-main-primary' : 'text-main-highlight'}`}>
+						{data.gasto ? <>
+							-{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(data.gasto)}
+						</> : <>
+							+{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(data.ingreso)}
+						</>
+						}
 					</span>
 				</div>
 				{expandedGastoId === data.id && (

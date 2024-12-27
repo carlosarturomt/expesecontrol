@@ -84,6 +84,11 @@ export const ICONS = {
 			<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24"><path fill={color} d="M2 4h1v16h2V10h4v10h2V6h4v14h2v-6h4v7H2zm16 11v5h2v-5zm-6-8v13h2V7zm-6 4v9h2v-9z" /></svg>
 		),
 	},
+	chart_line: {
+		border: (color) => (
+			<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24"><path fill={color} d="M3 4h1v14l5.58-9.67l6.01 3.47l3.62-6.26l.86.5l-4.11 7.13L9.95 9.7L4 20h16v1H3z" /></svg>
+		),
+	},
 	house: {
 		border: (color) => (
 			<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24"><path fill={color} d="M5.525 18q1.05 0 1.775-.725t.725-1.775q0-.6-.275-1.175t-.825-.925l-.9-.6V6.5q0-.225-.137-.363T5.525 6t-.363.138t-.137.362v6.3l-.9.6q-.55.375-.825.925T3.025 15.5q0 1.05.725 1.775T5.525 18m0 2q-1.875 0-3.187-1.3t-1.313-3.2q0-1.2.55-2.15t1.45-1.55V6.5q0-1.05.725-1.775T5.525 4t1.775.725t.725 1.775v5.3q.9.6 1.45 1.55t.55 2.15q0 1.875-1.312 3.188T5.525 20m8.175-5q-1.2-.825-1.95-2.125T11 10q0-2.5 1.75-4.25T17 4t4.25 1.75T23 10q0 1.575-.75 2.875T20.3 15zm.7-2h5.3q.675-.6.988-1.35T21 10q0-1.65-1.175-2.825T17 6t-2.825 1.175T13 10q0 .9.363 1.65T14.4 13m2.6 7q-.6 0-1.05-.45t-.45-1.05h3q0 .6-.45 1.05T17 20m-2-2q-.425 0-.712-.288T14 17t.288-.712T15 16h4q.425 0 .713.288T20 17t-.288.713T19 18zm2-8.5" /></svg>
@@ -206,6 +211,11 @@ export const ICONS = {
 	ruler: {
 		border: (color) => (
 			<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 14 14"><path fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" d="M.502 9.496L9.503.495l4.002 4.002l-9.001 9.001zM7.5 2.5L9 4M5 5l1.5 1.5m-4 1L4 9" /></svg>
+		),
+	},
+	tick: {
+		border: (color) => (
+			<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 16 16"><path fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="m2.75 8.75l3.5 3.5l7-7.5" /></svg>
 		),
 	},
 	ticket: {

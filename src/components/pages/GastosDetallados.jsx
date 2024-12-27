@@ -1,11 +1,11 @@
 import { useContext, useEffect, useState } from "react";
 import { UserDataContext } from "@context/userDataContext";
-import { Bar, Pie } from 'react-chartjs-2';
+import { Bar, Pie, Line } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title, BarElement } from 'chart.js';
 import { FilterButton, SwipeableCard } from "../atoms/Button";
-import { deleteDoc, doc, getDoc } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db, storage } from "@services/firebase/config";
-import { deleteObject, ref } from "firebase/storage";
+import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { ICONS } from "@assets/icons";
 
 
@@ -31,6 +31,9 @@ export default function GastosDetallados() {
     const [expandedGastoId, setExpandedGastoId] = useState(null);
     const [filterText, setFilterText] = useState('');
     const [totalGastos, setTotalGastos] = useState(0);
+    const [charts, setCharts] = useState(true);
+    const [chartCategory, setChartCategory] = useState(true);
+    const [chartPaymentType, setChartPaymentType] = useState(true);
 
     const paymentTypeMapping = {
         card1: userData && userData.paymentTypes && userData.paymentTypes.card1,
@@ -41,7 +44,6 @@ export default function GastosDetallados() {
         other: userData && userData.paymentTypes && userData.paymentTypes.other,
         cash: 'Efectivo',
     };
-
     useEffect(() => {
         if (!userData || !state.gastos || loading) return;
 
@@ -63,11 +65,9 @@ export default function GastosDetallados() {
                 endDate = new Date(currentYear, 11, 31);
                 break;
             case "all":
-                //setFilteredGastos(state.gastos);
                 setFilteredGastos(state.gastos
                     .filter(gasto => gasto.title.toLowerCase().includes(filterText.toLowerCase()) || gasto.remarks.toLowerCase().includes(filterText.toLowerCase()) || gasto.category.toLowerCase().includes(filterText.toLowerCase()))
                     .sort((a, b) => b.createdAt - a.createdAt));
-
                 return;
             default:
                 startDate = new Date(currentYear, currentMonth - (currentDay < cutoffDay ? 1 : 0), cutoffDay);
@@ -106,7 +106,7 @@ export default function GastosDetallados() {
             feeding: "Alimentación y Bebidas",
             transportation: "Transporte",
             health: "Salud y Bienestar",
-            educationJob: "Gastos de Educación o Trabajo",
+            educationJob: "Educación o Trabajo",
             housing: "Vivienda",
             entertainment: "Entretenimiento y Ocio",
             personalCare: "Ropa y Cuidado Personal",
@@ -121,7 +121,26 @@ export default function GastosDetallados() {
                 {
                     label: "Gastos por Categoría",
                     data: Object.values(groupedByCategory),
-                    backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF"],
+                    //backgroundColor: ["#C2185B", "#c12048", "#ba1354", "#bf2b6d", "#cb1048", "#ce0864"],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(255, 159, 64, 0.2)',
+                        'rgba(255, 205, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(201, 203, 207, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgb(255, 99, 132)',
+                        'rgb(255, 159, 64)',
+                        'rgb(255, 205, 86)',
+                        'rgb(75, 192, 192)',
+                        'rgb(54, 162, 235)',
+                        'rgb(153, 102, 255)',
+                        'rgb(201, 203, 207)'
+                    ],
+                    borderWidth: 1
                 },
             ],
         };
@@ -149,9 +168,25 @@ export default function GastosDetallados() {
                 {
                     label: "Gastos por Tipo de Pago",
                     data: paymentValues,
-                    backgroundColor: ['#495867', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
-                    borderColor: "#fff",
-                    borderWidth: 1,
+                    backgroundColor: [
+                        'rgba(201, 203, 207, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(255, 205, 86, 0.2)',
+                        'rgba(255, 159, 64, 0.2)',
+                        'rgba(255, 99, 132, 0.2)',
+                    ],
+                    borderColor: [
+                        'rgb(201, 203, 207)',
+                        'rgb(153, 102, 255)',
+                        'rgb(54, 162, 235)',
+                        'rgb(75, 192, 192)',
+                        'rgb(255, 205, 86)',
+                        'rgb(255, 159, 64)',
+                        'rgb(255, 99, 132)',
+                    ],
+                    borderWidth: 1
                 },
             ],
         };
@@ -241,52 +276,256 @@ export default function GastosDetallados() {
         }
     };
 
-    const items_filter = [
+    const items_filterPeriod = [
+        {
+            slug: () => setPeriod('all'),
+            label: "Todos los gastos",
+            icon: ICONS.all.border("#1C1C1E")
+        },
+        {
+            slug: () => setPeriod('current'),
+            label: "Periodo actual",
+            icon: ICONS.today.border("#1C1C1E"),
+        },
+        {
+            slug: () => setPeriod('previous'),
+            label: "Periodo anterior",
+            icon: ICONS.previous.border("#1C1C1E")
+        },
+        {
+            slug: () => setPeriod('year'),
+            label: "Año actual",
+            icon: ICONS.calendar.border("#1C1C1E")
+        }
+    ];
+
+    const items_filterCategory = [
         {
             slug: handleFilter,
-            label: "Todos",
+            label: "Todas las categorías",
             anchor: "",
+            icon: ICONS.all.border("#1C1C1E"),
         },
         {
             slug: handleFilter,
-            label: "Alimentación y Bebidas",
+            label: "Alimentación y bebidas",
             anchor: 'feeding',
+            icon: ICONS.restaurant.fill("#1C1C1E")
         },
         {
             slug: handleFilter,
             label: "Transporte",
             anchor: "transportation",
+            icon: ICONS.transportation.border("#1C1C1E")
         },
         {
             slug: handleFilter,
-            label: "Salud y Bienestar",
+            label: "Salud y bienestar",
             anchor: "health",
+            icon: ICONS.care.border("#1C1C1E")
         },
         {
             slug: handleFilter,
-            label: "Gastos de Educación o Trabajo",
+            label: "Educación o trabajo",
             anchor: "educationJob",
+            icon: ICONS.ruler.border("#1C1C1E")
         },
         {
             slug: handleFilter,
             label: "Vivienda",
             anchor: "housing",
+            icon: ICONS.house.border("#1C1C1E")
         },
         {
             slug: handleFilter,
-            label: "Entretenimiento y Ocio",
+            label: "Entretenimiento y ocio",
             anchor: "entertainment",
+            icon: ICONS.theater_masks.border("#1C1C1E")
         },
         {
             slug: handleFilter,
-            label: "Ropa y Cuidado Personal",
+            label: "Ropa y cuidado personal",
             anchor: "personalCare",
+            icon: ICONS.beauty.border("#1C1C1E")
         },
     ];
 
+    const closeModal = () => setState(prev => ({ ...prev, isModalOpen: false }));
+
+    const formatCurrency = (value) => {
+        // Eliminar caracteres no numéricos
+        const cleanedValue = value.replace(/[^0-9]/g, "");
+
+        // Formatear como moneda (por ejemplo, 666 se convierte en 6.66)
+        if (cleanedValue.length === 0) return "";
+
+        const numberValue = parseFloat(cleanedValue) / 100; // Dividir para convertir a formato de moneda
+        return numberValue.toLocaleString("es-MX", {
+            style: "decimal",
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+    };
+
+    const handleChange = (e) => {
+        const { name, type, value, files } = e.target;
+
+        if (type === "file") {
+            // Si el tipo es "file", asigna el archivo directamente al estado
+            setState((prev) => ({
+                ...prev,
+                [name]: files[0], // Asigna el primer archivo seleccionado
+            }));
+        } else {
+            // Para otros tipos de input (como text)
+            const formattedValue = name === "gasto" ? formatCurrency(value) : value;
+
+            setState((prev) => ({
+                ...prev,
+                [name]: formattedValue,
+            }));
+        }
+    };
+
+    const handleBlur = (e) => {
+        const { name } = e.target;
+        const cleanedValue = state[name].replace(/[^0-9]/g, "");
+        const numberValue = cleanedValue.length === 0 ? "" : parseFloat(cleanedValue) / 100;
+
+        // Al perder el foco, actualizar el valor en formato correcto
+        setState((prev) => ({
+            ...prev,
+            [name]: numberValue.toLocaleString("es-MX", {
+                style: "decimal",
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }),
+        }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setState(prev => ({ ...prev, isSubmitting: true }));
+
+        // Validar el valor del gasto
+        const gastoValue = parseFloat((state.gasto || "").toString().replace(/[^0-9.-]+/g, ""));
+        if (isNaN(gastoValue) || gastoValue <= 0) {
+            setState(prev => ({ ...prev, error: "Por favor, ingresa un gasto válido.", isSubmitting: false }));
+            return;
+        }
+
+        // Ajuste para la fecha
+        const date = state.date ? new Date(state.date + 'T00:00:00') : new Date();
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+
+        // Obtener la fecha de corte del usuario desde su perfil
+        const userCutoffDay = userData?.expenseControl.cutoffDay || 1; // Valor por defecto al 1 si no está configurado
+
+        const yearString = String(year);
+        let period = "";
+
+        // Determinación del periodo
+        if (day < userCutoffDay) {
+            switch (month) {
+                case 0: period = "diciembreEnero"; break;
+                case 1: period = "eneroFebrero"; break;
+                case 2: period = "febreroMarzo"; break;
+                case 3: period = "marzoAbril"; break;
+                case 4: period = "abrilMayo"; break;
+                case 5: period = "mayoJunio"; break;
+                case 6: period = "junioJulio"; break;
+                case 7: period = "julioAgosto"; break;
+                case 8: period = "agostoSeptiembre"; break;
+                case 9: period = "septiembreOctubre"; break;
+                case 10: period = "octubreNoviembre"; break;
+                case 11: period = "noviembreDiciembre"; break;
+                default: period = "desconocido";
+            }
+        } else {
+            switch (month) {
+                case 0: period = "eneroFebrero"; break;
+                case 1: period = "febreroMarzo"; break;
+                case 2: period = "marzoAbril"; break;
+                case 3: period = "abrilMayo"; break;
+                case 4: period = "mayoJunio"; break;
+                case 5: period = "junioJulio"; break;
+                case 6: period = "julioAgosto"; break;
+                case 7: period = "agostoSeptiembre"; break;
+                case 8: period = "septiembreOctubre"; break;
+                case 9: period = "octubreNoviembre"; break;
+                case 10: period = "noviembreDiciembre"; break;
+                case 11: period = "diciembreEnero"; break;
+                default: period = "desconocido";
+            }
+        }
+
+        try {
+            let fileURL = state.fileURL; // Mantén la URL original del archivo si existe
+
+            // Solo sube el archivo si el usuario ha seleccionado uno
+            if (state.file) {
+                const timestamp = Date.now();
+                const fileName = `${state.title}_${timestamp}.${state.file.name.split('.').pop()}`;
+                const storageRef = ref(storage, `userFiles/${userAuth.username}/${fileName}`);
+
+                await uploadBytes(storageRef, state.file);
+                fileURL = await getDownloadURL(storageRef);
+            }
+
+            // Prepara el objeto de datos a guardar
+            const dataToSave = {
+                gasto: gastoValue,
+                title: state.title,
+                remarks: state.remarks,
+                type: state.type,
+                category: state.category,
+                user: userAuth.username,
+                createdAt: date,
+                year: yearString,
+                period: period,
+            };
+
+            // Solo incluir fileURL si se obtuvo una URL válida
+            if (fileURL) {
+                dataToSave.fileURL = fileURL;
+            }
+
+            if (state.currentGastoId) {
+                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", String(state.currentGastoId));
+                await updateDoc(gastoRef, dataToSave);
+            } else {
+                const gastosRef = collection(db, "userPosts", userAuth.username, "gastos");
+                await addDoc(gastosRef, dataToSave);
+            }
+
+            // Limpiar el estado después de la operación
+            setState(prev => ({
+                ...prev,
+                gasto: "",
+                title: "",
+                remarks: "",
+                category: "",
+                type: "",
+                file: null,
+                isModalOpen: false,
+                error: "",
+                currentGastoId: null,
+            }));
+
+            setTimeout(() => location.reload(), 1000)
+        } catch (error) {
+            console.error("Error al subir datos: ", error);
+            setState(prev => ({ ...prev, error: "Error al subir los datos: " + error.message, isSubmitting: false }));
+        } finally {
+            setState(prev => ({ ...prev, isSubmitting: false }));
+        }
+    };
+
     return (
-        <section className="container mx-auto p-4 mb-20">
-            <div className="relative py-2 mb-2 flex items-center">
+        <section className="mx-auto p-4 mb-20">
+            <aside className="py-2 mb-2 flex justify-center flex-col gap-2">
                 <div className="w-full flex-center pl-4 rounded-3xl bg-main-dark/5">
                     <i className="flex-center w-6 h-6 opacity-40">
                         {
@@ -304,56 +543,95 @@ export default function GastosDetallados() {
                     <FilterButton
                         label={
                             <i className="flex-center w-6 h-6">
-                                {ICONS.filter.fill("#C2185B")}
+                                {ICONS.filter.fill("#00A86B")}
                             </i>}
-                        items={items_filter}
+                        titleSectionOne='Filtrar por periodo'
+                        itemsSectionOne={items_filterPeriod}
+                        titleSectionTwo='Filtrar por categoría'
+                        itemsSectionTwo={items_filterCategory}
                     />
                 </div>
-            </div>
-            {/* Filtros */}
-            <div className="flex  items-center gap-3 mb-4">
-                <select
-                    value={period}
-                    onChange={(e) => setPeriod(e.target.value)}
-                    className="border p-2 rounded"
-                >
-                    <option value="current">Periodo Actual</option>
-                    <option value="previous">Periodo Anterior</option>
-                    <option value="year">Año Actual</option>
-                    <option value="all">Todos los Gastos</option>
-                </select>
 
-                <p className="text-xl font-medium text-main-dark">
-                    ${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-            </div>
+                <div className="flex items-center gap-2">
+                    <i
+                        //onClick={() => setCharts((prev) => !prev)}
+                        /* className={`flex-center w-10 h-10 p-2 rounded-full ${(!chartCategory && !chartPaymentType && 'bg-main-dark/5 text-main-dark/50') || (charts ? 'bg-main-highlight/70 text-main-light' : 'bg-main-dark/5 text-main-dark/50')}`} */
+                        className={`flex-center w-10 h-10 p-2 rounded-full bg-main-highlight/70 text-main-light`}
+                    >
+                        {ICONS.chart.border('#F5F6FA')}
+                        {/* {ICONS.chart.border((!chartCategory && !chartPaymentType && '#8d8d8e') || (charts ? '#F5F6FA' : '#8d8d8e'))} */}
+                    </i>
+                    <button
+                        onClick={() => setChartCategory((prev) => !prev)}
+                        className={`w-fit flex-center gap-1 h-10 px-4 rounded-3xl ${(!charts && 'bg-main-dark/5 text-main-dark/50') || (chartCategory ? 'bg-main-highlight/70 text-main-light' : 'bg-main-dark/5 text-main-dark/50')}`}>
+                        Categoría
+                    </button>
+                    <button
+                        onClick={() => setChartPaymentType((prev) => !prev)}
+                        className={`w-fit flex-center gap-1 h-10 px-4 rounded-3xl ${(!charts && 'bg-main-dark/5 text-main-dark/50') || (chartPaymentType ? 'bg-main-highlight/70 text-main-light' : 'bg-main-dark/5 text-main-dark/50')}`}>
+                        Método de pago
+                    </button>
+                </div>
+            </aside>
 
             <hgroup className="mb-2">
                 <h1 className="text-main-dark py-2 text-lg font-semibold border-b border-main-dark/20">Detalles de Gastos</h1>
-                <p className="py-2 text-sm font-light text-main-dark/50">{filteredGastos.length} Resultados</p>
+                <div className="flex items-center justify-between">
+                    <p className="py-2 text-sm font-light text-main-dark/50">{filteredGastos.length} Resultados</p>
+                    <p className="py-2 text-sm font-light text-main-dark/50">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })} Gastados</p>
+                </div>
             </hgroup>
 
             {/* Gráficos */}
-            <div className="flex gap-4 mb-4">
-                {chartData ? (
-                    <div className="w-full flex-center flex-col space-y-6">
-                        {/* <div className="w-full flex-center">
-                            <Pie data={chartData} />
-                        </div> */}
-                        <div className="w-full flex-center">
-                            <Pie data={chartData} />
+            {
+                charts &&
+                <div className="flex gap-4 mb-3">
+                    {chartData ? (
+                        <div className="w-full flex-center flex-col space-y-3">
+                            {chartCategory &&
+                                <div className="w-full p-4 flex justify-center flex-col rounded-3xl bg-main-dark/5">
+                                    <h2 className="font-semibold mb-2">Gastos por categoría</h2>
+                                    <Bar
+                                        data={chartData}
+                                        options={{
+                                            indexAxis: 'y',
+                                            plugins: {
+                                                legend: {
+                                                    display: false,
+                                                    //position: 'bottom',
+                                                },
+                                            },
+                                        }}
+                                    />
+                                </div>
+                            }
+                            {chartPaymentType &&
+                                <div className="w-full p-4 flex justify-center flex-col rounded-3xl bg-main-dark/5">
+                                    <h2 className="font-semibold mb-2">Gastos por tipo de pago</h2>
+                                    <Bar
+                                        data={paymentChartData}
+                                        options={{
+                                            //indexAxis: 'y',
+                                            plugins: {
+                                                legend: {
+                                                    display: false,
+                                                    //position: 'bottom',
+                                                },
+                                            },
+                                        }}
+                                    />
+                                </div>
+                            }
                         </div>
-                        <div className="w-full flex-center">
-                            <Bar data={paymentChartData} />
-                        </div>
-                    </div>
-                ) : (
-                    <p className="text-center text-gray-500">Cargando gráficos...</p> // Mensaje de carga
-                )}
-            </div>
+                    ) : chartData == null ? (
+                        <p className="text-center text-gray-500">Sin resultados</p>
+                    ) : (
+                        <p className="text-center text-gray-500">Cargando gráficos...</p>
+                    )}
+                </div>
+            }
 
-            <h2 className="text-lg font-bold mb-2">Listado de Gastos</h2>
-
+            {/* <h2 className="text-lg font-bold mb-2">Listado de Gastos</h2>*/}
             {/* Detalle de Gastos */}
             <ul className="space-y-3">
                 {filteredGastos
@@ -409,6 +687,125 @@ export default function GastosDetallados() {
                     </tbody>
                 </table>
             </div> */}
-        </section>
+
+            {
+                state.isModalOpen && (
+                    <div className="fixed inset-0 bg-black/50 flex-center z-50">
+                        <div className="bg-white rounded-lg max-w-lg w-full h-[85vh] relative overflow-hidden">
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <button onClick={closeModal} className="p-2 text-main-primary">Cancelar</button>
+
+                                    <button
+                                        type="submit"
+                                        disabled={state.isSubmitting}
+                                        className="p-2 text-main-highlight rounded hover:bg-main-primary-dark transition"
+                                    >
+                                        {state.isSubmitting ? "Guardando..." : (state.currentGastoId ? "Actualizar" : "Agregar")}
+                                    </button>
+                                </div>
+
+                                <div className="px-2">
+                                    <hgroup className="rounded-3xl py-2 px-4 mb-4 bg-main-light">
+                                        <input
+                                            name="title"
+                                            type="text"
+                                            placeholder="Concepto"
+                                            value={state.title}
+                                            onChange={handleChange}
+                                            className="w-full py-2 bg-transparent outline-none border-b border-main-dark/20 text-main-dark placeholder:text-main-dark/50"
+                                            required
+                                        />
+                                        <div className="flex-center pt-2 py-2">
+                                            $
+                                            <input
+                                                name="gasto"
+                                                type="text" // Mantener como texto para manejar el formato
+                                                placeholder="$ $"
+                                                value={state.gasto}
+                                                onChange={handleChange}
+                                                onBlur={handleBlur} // Formato al perder el foco
+                                                className="w-full pl-1 bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
+                                                required
+                                            />
+                                            {!loading && userData?.expenseControl.currency}
+                                        </div>
+                                    </hgroup>
+
+                                    <div className="rounded-3xl p-4 mb-4 bg-main-light">
+                                        <select name="type" value={state.type} onChange={handleChange} className="w-full bg-transparent outline-none">
+                                            <option value="" hidden className="text-main-gray">Pago con</option>
+                                            {userData.paymentTypes.card1 &&
+                                                <option value={"card1"}>{userData.paymentTypes.card1}</option>}
+                                            {userData.paymentTypes.card2 &&
+                                                <option value={"card2"}>{userData.paymentTypes.card2}</option>
+                                            }
+                                            {userData.paymentTypes.card3 &&
+                                                <option value={"card3"}>{userData.paymentTypes.card3}</option>
+                                            }
+                                            {userData.paymentTypes.card4 &&
+                                                <option value={"card4"}>{userData.paymentTypes.card4}</option>
+                                            }
+                                            {userData.paymentTypes.card5 &&
+                                                <option value={"card5"}>{userData.paymentTypes.card5}</option>
+                                            }
+                                            {userData.paymentTypes.other &&
+                                                <option value={"other"}>{userData.paymentTypes.other}</option>
+                                            }
+                                            <option value={"cash"}>Efectivo</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="rounded-3xl p-4 mb-4 bg-main-light">
+                                        <select name="category" value={state.category} onChange={handleChange} className="w-full bg-transparent outline-none">
+                                            <option value="" hidden className="text-main-gray">Categorías</option>
+                                            <option value={"feeding"}>Alimentación y Bebidas</option>
+                                            <option value={"transportation"}>Transporte</option>
+                                            <option value={"health"}>Salud y Bienestar</option>
+                                            <option value={"educationJob"}>Gastos de Educación o Trabajo</option>
+                                            <option value={"housing"}>Vivienda</option>
+                                            <option value={"entertainment"}>Entretenimiento y Ocio</option>
+                                            <option value={"personalCare"}>Ropa y Cuidado Personal</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="rounded-3xl p-4 mb-4 bg-main-light">
+                                        <input
+                                            id="date"
+                                            name="date"
+                                            type="date"
+                                            value={state.date}
+                                            onChange={handleChange}
+                                            className="w-full bg-transparent outline-none text-main-dark placeholder:text-main-dark/50"
+                                        />
+                                    </div>
+
+                                    {!state.currentGastoId &&
+                                        <div className="rounded-3xl p-4 mb-4 bg-main-light">
+                                            <input
+                                                name="file"
+                                                type="file"
+                                                onChange={handleChange}
+                                                className="w-full"
+                                                accept="image/*, .pdf"
+                                            />
+                                        </div>
+                                    }
+
+                                    <textarea
+                                        name="remarks"
+                                        placeholder="Observaciones"
+                                        value={state.remarks}
+                                        onChange={handleChange}
+                                        rows="4"
+                                        className="w-full rounded-3xl p-4 mb-4 outline-none bg-main-light"
+                                    />
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
+        </section >
     );
 }

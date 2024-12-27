@@ -141,7 +141,7 @@ function LogOutButton() {
 	);
 }
 
-function FilterButton({ items = [], label }) {
+function FilterButton({ label, titleSectionOne, itemsSectionOne = [], titleSectionTwo, itemsSectionTwo = [] }) {
 	const activatorRef = useRef(null);
 	const [isOpen, setIsOpen] = useState(false);
 
@@ -163,14 +163,21 @@ function FilterButton({ items = [], label }) {
 		document.addEventListener("mousedown", handleClickOutside);
 		document.addEventListener("keydown", handleEscape);
 
+		if (isOpen) {
+			document.body.classList.add("no-scroll");
+		} else {
+			document.body.classList.remove("no-scroll");
+		}
+
 		return () => {
+			document.body.classList.remove("no-scroll");
 			document.removeEventListener("mousedown", handleClickOutside);
 			document.removeEventListener("keydown", handleEscape);
 		};
 	});
 
 	return (
-		<div className={"relative inline-block"}>
+		<div className={"inline-block"}>
 			<button
 				className={`h-fit p-4 rounded-3xl font-medium text-sm ml-2 my-1 text-main-dark ${!isOpen ? 'opacity-50' : 'opacity-100'} `}
 				aria-haspopup="true"
@@ -181,32 +188,62 @@ function FilterButton({ items = [], label }) {
 				{label}
 			</button>
 
-			<ul
-				className={`absolute top-16 right-2 mt-2 p-4 z-[100] rounded-md bg-[#eaebee] shadow-sm shadow-main-dark/30 ${isOpen
-					? "grid grid-cols-[repeat(auto-fill,minmax(183px,1fr))]"
-					: "hidden"
-					}`}
-			>
-				<li className="pb-2 mb-2 font-semibold border-b border-main-dark/20 text-main-dark">Filtrar por categoría</li>
+			<div className={`absolute top-0 left-0 w-full h-full z-[100] bg-main-dark/80 ${isOpen
+				? "block"
+				: "hidden"
+				}`}>
+				<div className="flex flex-col mt-24 p-4 rounded-md bg-[#eaebee] shadow-sm shadow-main-dark/30">
+					<ul className="pb-2">
+						<li className="py-2 font-semibold text-main-dark">{titleSectionOne}</li>
 
-				{items.map((item, index) => {
-					return (
-						<li
-							className={"text-sm"}
-							key={index}
-							onClick={() => setIsOpen(!isOpen)}
-						>
-							<button
-								className="text-left w-full py-1 rounded-3xl text-main-dark hover:font-semibold"
-								value={item.anchor}
-								onClick={item.slug}
-							>
-								{item.label}
-							</button>
-						</li>
-					);
-				})}
-			</ul>
+						{itemsSectionOne.map((item, index) => {
+							return (
+								<li
+									className={"text-sm"}
+									key={index}
+									onClick={() => setIsOpen(!isOpen)}
+								>
+									<button
+										className="flex items-center gap-2 text-left w-full py-1 rounded-3xl text-main-dark hover:font-semibold"
+										value={item.anchor}
+										onClick={item.slug}
+									>
+										<i className="flex-center w-4 h-4">
+											{item.icon}
+										</i>
+										{item.label}
+									</button>
+								</li>
+							);
+						})}
+					</ul>
+
+					<ul>
+						<li className="py-2 font-semibold border-t border-main-dark/20 text-main-dark">{titleSectionTwo}</li>
+
+						{itemsSectionTwo.map((item, index) => {
+							return (
+								<li
+									className={"text-sm"}
+									key={index}
+									onClick={() => setIsOpen(!isOpen)}
+								>
+									<button
+										className="flex items-center gap-2 text-left w-full py-1 rounded-3xl text-main-dark hover:font-semibold"
+										value={item.anchor}
+										onClick={item.slug}
+									>
+										<i className="flex-center w-4 h-4">
+											{item.icon}
+										</i>
+										{item.label}
+									</button>
+								</li>
+							);
+						})}
+					</ul>
+				</div>
+			</div>
 		</div>
 	);
 }
@@ -345,6 +382,12 @@ function SwipeableCard({ context, data, onEdit, onDelete, expandedGastoId, onCar
 											<span className="flex-center gap-1">
 												<i className="w-4 h-4 flex-center">{ICONS.care.border("#F5F6FA")}</i>
 												Salud y Bienestear
+											</span>
+										) ||
+										data.category == "educationJob" && (
+											<span className="flex-center gap-1">
+												<i className="w-4 h-4 flex-center">{ICONS.ruler.border("#F5F6FA")}</i>
+												Educación o Trabajo
 											</span>
 										)
 									}

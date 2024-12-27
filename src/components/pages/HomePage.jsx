@@ -673,7 +673,7 @@ export default function HomePage() {
                                                     <option value={"feeding"}>Alimentación y Bebidas</option>
                                                     <option value={"transportation"}>Transporte</option>
                                                     <option value={"health"}>Salud y Bienestar</option>
-                                                    <option value={"educationJob"}>Gastos de Educación o Trabajo</option>
+                                                    <option value={"educationJob"}>Educación o Trabajo</option>
                                                     <option value={"housing"}>Vivienda</option>
                                                     <option value={"entertainment"}>Entretenimiento y Ocio</option>
                                                     <option value={"personalCare"}>Ropa y Cuidado Personal</option>

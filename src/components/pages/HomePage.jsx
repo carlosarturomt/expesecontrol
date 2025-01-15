@@ -1,12 +1,11 @@
 import { useContext, useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { addDoc, collection, doc, updateDoc } from "firebase/firestore";
 import { db, storage } from "@services/firebase/config";
 import { UserDataContext } from "@context/userDataContext";
 import useAuthRequired from "@hooks/useAuthRequired";
 import { Spinner } from "@components/atoms/Spinner";
-import { ICONS } from "@assets/icons";
 
 import { Pie } from 'react-chartjs-2';
 import {
@@ -35,6 +34,10 @@ ChartJS.register(
     BarElement // Registra el BarElement
 );
 
+/* assets */
+import { x_male_female_purple } from "@assets/imgs/avatars";
+import { ICONS } from "@assets/icons";
+
 export default function HomePage() {
     const { isAuthenticated } = useAuthRequired("/register", "/");
     const { loading, userAuth, userData, state, setState } = useContext(UserDataContext);
@@ -44,15 +47,19 @@ export default function HomePage() {
     const [filteredPaymentLabels, setFilteredPaymentLabels] = useState([]);
     const [filteredPaymentChartData, setFilteredPaymentChartData] = useState([]);
 
-    const [totalIngresos, setTotalIngresos] = useState(0);
+    const [totalIncomes, setTotalIncomes] = useState(0);
     const [categoryIncomeChartData, setCategoryIncomeChartData] = useState({});
 
     const [categoryExpenseChartData, setCategoryExpenseChartData] = useState({});
 
     const [isIncome, setIsIncome] = useState(false);
 
+    const selectedAvatar = userData && userData?.profilePhoto || "";
+    const location = useLocation().pathname
+
+
     useEffect(() => {
-        if (!userData || !state.gastos || loading) return;
+        if (!userData || !state.gastos || !state.ingresos || loading) return;
 
         const cutoffDay = parseInt(userData?.expenseControl?.cutoffDay, 10) || 12;
         const today = new Date();
@@ -61,20 +68,9 @@ export default function HomePage() {
         const currentYear = today.getFullYear();
 
         // Calcular el rango de fechas
-        const startDate = new Date(
-            currentYear,
-            currentMonth - (currentDay < cutoffDay ? 1 : 0), // Mes anterior si el día actual es menor al cutoff
-            cutoffDay
-        );
+        const startDate = new Date(currentYear, currentMonth - (currentDay < cutoffDay ? 1 : 0), cutoffDay);
 
-        const endDate = new Date(
-            startDate.getFullYear(),
-            startDate.getMonth() + 1, // Un mes después del startDate
-            cutoffDay - 1,
-            23,
-            59,
-            59
-        );
+        const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, cutoffDay - 1, 23, 59, 59);
 
         // Filtrar los gastos
         const gastosFiltrados = state.gastos.filter((gasto) => {
@@ -164,8 +160,17 @@ export default function HomePage() {
             }]
         });
 
-        setTotalIngresos(state.ingresos.reduce((acc, ingreso) => acc + (parseFloat(ingreso.ingreso) || 0), 0));
-    }, [state.gastos, userData, loading]);
+        const incomesFiltered = state.ingresos.filter((income) => {
+            const incomeDate = income.createdAt instanceof Date ? income.createdAt : income.createdAt.toDate();
+
+            return incomeDate >= startDate && incomeDate <= endDate;
+        });
+
+        setTotalIncomes(incomesFiltered.reduce(
+            (acc, income) => acc + (parseFloat(income.ingreso) || 0),
+            0
+        ));
+    }, [state.gastos, state.ingresos, userData, loading]);
 
     useEffect(() => {
         if (state.isModalOpen) {
@@ -359,8 +364,22 @@ export default function HomePage() {
 
     return (
         <div className="mb-10">
+            {/* Header */}
+            <section className="w-full max-w-screen-sm py-3 flex items-center justify-end"
+            >
+                <NavLink to={!location.includes('profile') && 'profile'}
+                >
+                    {/* <i className="flex-center w-10 h-10 aspect-square rounded-full p-1 bg-primary-nightshade/70">{ICONS.user.border("#F5F6FA")}</i> */}
+                    <img
+                        src={selectedAvatar || x_male_female_purple}
+                        alt="Profile"
+                        className="w-12 h-12 rounded-full object-cover border"
+                    />
+                </NavLink>
+            </section>
+
             {/* Sección de Gastos Totales */}
-            <section className="w-full max-w-screen-sm mt-6 py-3 flex flex-col items-center">
+            <section className="w-full max-w-screen-sm py-3 flex flex-col items-center">
                 <p className="leading-3 text-main-dark/50">Gastos Totales</p>
                 <h1 className="text-4xl font-bold text-main-dark my-1">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h1>
                 <p className={` ${totalBudget - totalGastos < 0 ? 'text-main-primary' : 'text-main-highlight'}`}>
@@ -402,12 +421,12 @@ export default function HomePage() {
                         <div className="w-[48%] h-[130px] py-3 px-4 flex flex-col justify-between">
                             <p className="w-full text-main-primary text-center flex gap-1 font-bold">
                                 <i className="flex-center w-5 h-5 aspect-square">{ICONS.flame.fill("#C2185B")}</i>
-                                {/* <i className="flex-center w-6 h-6">{ICONS.money.wings()}</i> */}
                                 Gastos
                             </p>
                             <p className={`w-full font-semibold text-2xl mt-7 ${percentFree > 100 && 'text-primary-nightshade'}`}>
-                                {` ${percentFree.toFixed(0)}% `}
-                                <span className="text-xs text-primary-slate/70">gastado</span>
+                                {/* {` ${percentFree.toFixed(0)}% `} */}
+                                ${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                <span className="text-xs ml-1 text-primary-slate/70">gastado</span>
                             </p>
                         </div>
 
@@ -437,6 +456,9 @@ export default function HomePage() {
                                         },
                                     }}
                                 />
+                                {/* <span className="flex-center absolute mx-auto text-primary-slate">
+                                    {percentFree.toFixed(0)}%
+                                </span> */}
                             </div>
                         </div>
                     </NavLink>
@@ -449,7 +471,7 @@ export default function HomePage() {
                                 Ingresos
                             </p>
                             <p className={`w-full font-semibold text-2xl mt-7`}>
-                                {`$${totalIngresos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                                {`$${totalIncomes.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                                 <span className="text-xs text-primary-slate/70"> ganados</span>
                             </p>
                         </div>
@@ -498,7 +520,7 @@ export default function HomePage() {
                         </NavLink>
                     </aside>
 
-                    <aside className="w-full flex flex-wrap items-stretch gap-[4%] mt-3">
+                    <aside className="w-full flex flex-wrap items-stretch gap-[4%] my-3">
                         <div className={`${(totalBudgetToSpent) < 0 ? 'bg-primary-platinum' : 'bg-white hidden'} ${percentSpent < 0 ? 'w-[48%] max-w-[300px]' : 'w-full'} rounded-3xl p-4 flex justify-between items-center`}>
                             <span className="text-main-dark">Saldo</span>
                             <span className={`${totalBudgetToSpent < 0 ? 'text-main-primary' : 'text-main-highlight'} font-semibold`}>
@@ -507,8 +529,7 @@ export default function HomePage() {
                         </div>
 
                         {percentSpent < 0 &&
-                            <div className="w-[48%] max-w-[300px] bg-primary-platinum rounded-3xl p-4 flex items-center justify-between gap-1
-                    opacity-0 transform scale-95 transition-all duration-500 ease-out motion-safe:animate-fade-in">
+                            <div className="w-[48%] max-w-[300px] bg-primary-platinum rounded-3xl p-4 flex items-center justify-between gap-1 opacity-0 transform scale-95 transition-all duration-500 ease-out motion-safe:animate-fade-in">
                                 <i className="flex-center w-6 h-6">{ICONS.alert.border("#C2185B")}</i>
                                 <span className="text-sm text-main-primary">
                                     Has gastado
@@ -521,7 +542,7 @@ export default function HomePage() {
                         }
                     </aside>
 
-                    <aside className="w-full flex flex-wrap items-start gap-[4%] my-3">
+                    <aside className="w-full flex flex-wrap items-start gap-[4%] mb-3">
                         {filteredPaymentLabels.map((paymentType, index) => (
                             <NavLink to="/expenses/payments" key={paymentType} className="w-[48%] max-w-[300px] mb-3">
                                 <div className="bg-white py-3 px-4 rounded-3xl h-full flex flex-col items-start">
@@ -605,7 +626,6 @@ export default function HomePage() {
                                             {!loading && userData && userData.expenseControl && userData?.expenseControl.currency}
                                         </div>
                                     </hgroup>
-
 
                                     <div className="rounded-3xl p-4 mb-4 bg-main-light">
                                         <select name="type" value={state.type} onChange={handleChange} className="w-full bg-transparent outline-none" required>

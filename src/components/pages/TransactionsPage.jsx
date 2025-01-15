@@ -1,19 +1,77 @@
 import { useContext, useEffect, useState } from "react";
-import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { UserDataContext } from "@context/userDataContext";
+import { Bar, Pie, Line } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title, BarElement } from 'chart.js';
+import { FilterButton, SwipeableCard } from "../atoms/Button";
 import { addDoc, collection, deleteDoc, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db, storage } from "@services/firebase/config";
-import useAuthRequired from "@hooks/useAuthRequired";
-import { UserDataContext } from "@context/userDataContext";
-import { Spinner } from "@components/atoms/Spinner";
-import { SwipeableCard } from "@components/atoms/Button";
+import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { ICONS } from "@assets/icons";
-import { FilterButton } from "../atoms/Button";
+import { useParams } from "react-router-dom";
+
+// Registrar los elementos necesarios en ChartJS
+ChartJS.register(
+    ArcElement,
+    Tooltip,
+    Legend,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    BarElement
+);
 
 export default function TransactionsPage() {
-    const { isLoading, isAuthenticated } = useAuthRequired("/register", "/transactions");
     const { loading, userAuth, userData, state, setState } = useContext(UserDataContext);
+    const [filteredGastos, setFilteredGastos] = useState([]);
+    const [paymentChartData, setPaymentChartData] = useState({});
+    const [chartData, setChartData] = useState(null); // Iniciar como null para control de carga
+    const [period, setPeriod] = useState("all");
     const [expandedGastoId, setExpandedGastoId] = useState(null);
     const [filterText, setFilterText] = useState('');
+    const [totalGastos, setTotalGastos] = useState(0);
+    const [charts, setCharts] = useState(true);
+    const [chartCategory, setChartCategory] = useState(true);
+    const [chartPaymentType, setChartPaymentType] = useState(true);
+
+    const { anchor } = useParams();
+
+    const paymentTypeMapping = {
+        card1: userData && userData.paymentTypes && userData.paymentTypes.card1,
+        card2: userData && userData.paymentTypes && userData.paymentTypes.card2,
+        card3: userData && userData.paymentTypes && userData.paymentTypes.card3,
+        card4: userData && userData.paymentTypes && userData.paymentTypes.card4,
+        card5: userData && userData.paymentTypes && userData.paymentTypes.card5,
+        other: userData && userData.paymentTypes && userData.paymentTypes.other,
+        cash: 'Efectivo',
+    };
+
+    useEffect(() => {
+        // Ajustar qué gráficos mostrar en función del ancla
+        switch (anchor) {
+            case "all":
+                setCharts(true);
+                setChartCategory(true);
+                setChartPaymentType(true);
+                break;
+            case "gastos":
+                setCharts(false);
+                setChartCategory(false);
+                setChartPaymentType(false);
+                break;
+            case "payments":
+                setCharts(false);
+                setChartCategory(false);
+                setChartPaymentType(true);
+                break;
+            default:
+                setCharts(true);
+                setChartCategory(true);
+                setChartPaymentType(true);
+                break;
+        }
+    }, [anchor]);
 
     useEffect(() => {
         if (!userData || !state.gastos || loading) return;
@@ -24,106 +82,147 @@ export default function TransactionsPage() {
         const currentMonth = today.getMonth();
         const currentYear = today.getFullYear();
 
-        // Calcular el rango de fechas
-        const startDate = new Date(
-            currentYear,
-            currentMonth - (currentDay < cutoffDay ? 1 : 0), // Mes anterior si el día actual es menor al cutoff
-            cutoffDay
-        );
+        let startDate, endDate;
 
-        const endDate = new Date(
-            startDate.getFullYear(),
-            startDate.getMonth() + 1, // Un mes después del startDate
-            cutoffDay - 1,
-            23,
-            59,
-            59
-        );
+        switch (period) {
+            case "previous":
+                startDate = new Date(currentYear, currentMonth - 1, cutoffDay);
+                endDate = new Date(currentYear, currentMonth, cutoffDay - 1, 23, 59, 59);
+                break;
+            case "year":
+                startDate = new Date(currentYear, 0, 1);
+                endDate = new Date(currentYear, 11, 31);
+                break;
+            case "all":
+                setFilteredGastos(state.gastos
+                    .filter(gasto => gasto.title.toLowerCase().includes(filterText.toLowerCase()) || gasto.remarks.toLowerCase().includes(filterText.toLowerCase()) || gasto.category.toLowerCase().includes(filterText.toLowerCase()))
+                    .sort((a, b) => b.createdAt - a.createdAt));
+                return;
+            default:
+                startDate = new Date(currentYear, currentMonth - (currentDay < cutoffDay ? 1 : 0), cutoffDay);
+                endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, cutoffDay - 1, 23, 59, 59);
+        }
 
-        //console.log("Rango de fechas:", { startDate, endDate });
-
-        // Filtrar los gastos
         const gastosFiltrados = state.gastos.filter((gasto) => {
             const gastoDate = gasto.createdAt instanceof Date ? gasto.createdAt : gasto.createdAt.toDate();
-            //console.log("GastoDate:", gastoDate, "Dentro del rango:", gastoDate >= startDate && gastoDate <= endDate);
+
             return gastoDate >= startDate && gastoDate <= endDate;
         });
 
+        setTotalGastos(gastosFiltrados.reduce(
+            (acc, gasto) => acc + (parseFloat(gasto.gasto) || 0),
+            0
+        ));
 
-    }, [state.gastos, userData, loading]);
+        setFilteredGastos(gastosFiltrados.filter(gasto => gasto.title.toLowerCase().includes(filterText.toLowerCase()) || gasto.remarks.toLowerCase().includes(filterText.toLowerCase()) || gasto.category.toLowerCase().includes(filterText.toLowerCase()))
+            .sort((a, b) => b.createdAt - a.createdAt));
+    }, [state.gastos, userData, period, loading, filterText]);
 
     useEffect(() => {
-        if (state.isModalOpen) {
-            document.body.style.overflow = "hidden"; // Desactivar scroll
-        } else {
-            document.body.style.overflow = "unset"; // Reactivar scroll
+        if (filteredGastos.length === 0) {
+            setChartData(null); // Resetear chartData si no hay datos
+            return;
         }
 
-        return () => {
-            document.body.style.overflow = "unset"; // Asegurarse de que se reactiva al desmontar
+        const groupedByCategory = filteredGastos.reduce((acc, gasto) => {
+            if (!acc[gasto.category]) acc[gasto.category] = 0;
+            acc[gasto.category] += parseFloat(gasto.gasto) || 0;
+            return acc;
+        }, {});
+
+
+        const categoryMapping = {
+            feeding: "Alimentación y Bebidas",
+            transportation: "Transporte",
+            health: "Salud y Bienestar",
+            educationJob: "Educación o Trabajo",
+            housing: "Vivienda",
+            entertainment: "Entretenimiento y Ocio",
+            personalCare: "Ropa y Cuidado Personal",
         };
-    }, [state.isModalOpen]);
 
-    // Filtra los gastos en función del texto del filtro
-    const filteredGastos = state.gastos
-        .filter(gasto => gasto.title.toLowerCase().includes(filterText.toLowerCase()) || gasto.remarks.toLowerCase().includes(filterText.toLowerCase()) || gasto.category.toLowerCase().includes(filterText.toLowerCase()))
-        .sort((a, b) => b.createdAt - a.createdAt);
+        // Mapear las categorías a sus nombres legibles
+        const mappedCategoryLabels = Object.keys(groupedByCategory).map(category => categoryMapping[category] || category);
 
-    const handleFilter = (e) => {
-        const value = e.target.value;
+        const newChartData = {
+            labels: mappedCategoryLabels,
+            datasets: [
+                {
+                    label: "Gastos por Categoría",
+                    data: Object.values(groupedByCategory),
+                    //backgroundColor: ["#C2185B", "#c12048", "#ba1354", "#bf2b6d", "#cb1048", "#ce0864"],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(255, 159, 64, 0.2)',
+                        'rgba(255, 205, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(201, 203, 207, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgb(255, 99, 132)',
+                        'rgb(255, 159, 64)',
+                        'rgb(255, 205, 86)',
+                        'rgb(75, 192, 192)',
+                        'rgb(54, 162, 235)',
+                        'rgb(153, 102, 255)',
+                        'rgb(201, 203, 207)'
+                    ],
+                    borderWidth: 1
+                },
+            ],
+        };
 
-        // Actualizar el filtro de texto
-        if (value !== undefined) {
-            setFilterText(value);
-        }
-    };
+        // Agrupar por tipo de pago
+        const groupedByPaymentType = filteredGastos.reduce((acc, item) => {
+            if (!acc[item.type]) {
+                acc[item.type] = 0;
+            }
+            acc[item.type] += parseFloat(item.gasto) || 0;
+            return acc;
+        }, {});
 
-    const items_filter = [
-        {
-            slug: handleFilter,
-            label: "Todos",
-            anchor: "",
-        },
-        {
-            slug: handleFilter,
-            label: "Alimentación y Bebidas",
-            anchor: 'feeding',
-        },
-        {
-            slug: handleFilter,
-            label: "Transporte",
-            anchor: "transportation",
-        },
-        {
-            slug: handleFilter,
-            label: "Salud y Bienestar",
-            anchor: "health",
-        },
-        {
-            slug: handleFilter,
-            label: "Gastos de Educación o Trabajo",
-            anchor: "educationJob",
-        },
-        {
-            slug: handleFilter,
-            label: "Vivienda",
-            anchor: "housing",
-        },
-        {
-            slug: handleFilter,
-            label: "Entretenimiento y Ocio",
-            anchor: "entertainment",
-        },
-        {
-            slug: handleFilter,
-            label: "Ropa y Cuidado Personal",
-            anchor: "personalCare",
-        },
-    ];
+        const paymentLabels = Object.keys(groupedByPaymentType);
+        const paymentValues = Object.values(groupedByPaymentType);
 
-    const handleCardClick = (id) => {
-        setExpandedGastoId(expandedGastoId === id ? null : id);
-    };
+        const mappedPaymentLabels = paymentLabels.map((paymentType) => {
+            return paymentTypeMapping[paymentType] || paymentType; // En caso de que no exista el tipo, usar el label original
+        });
+
+        // Configurar los datos del gráfico
+        const chartData = {
+            labels: mappedPaymentLabels,
+            datasets: [
+                {
+                    label: "Gastos por Tipo de Pago",
+                    data: paymentValues,
+                    backgroundColor: [
+                        'rgba(201, 203, 207, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(255, 205, 86, 0.2)',
+                        'rgba(255, 159, 64, 0.2)',
+                        'rgba(255, 99, 132, 0.2)',
+                    ],
+                    borderColor: [
+                        'rgb(201, 203, 207)',
+                        'rgb(153, 102, 255)',
+                        'rgb(54, 162, 235)',
+                        'rgb(75, 192, 192)',
+                        'rgb(255, 205, 86)',
+                        'rgb(255, 159, 64)',
+                        'rgb(255, 99, 132)',
+                    ],
+                    borderWidth: 1
+                },
+            ],
+        };
+
+        setPaymentChartData(chartData);
+        setChartData(newChartData);
+    }, [filteredGastos, filterText]);
 
     const handleEdit = async (id) => {
         try {
@@ -192,6 +291,91 @@ export default function TransactionsPage() {
             }
         }
     };
+
+    const handleCardClick = (id) => {
+        setExpandedGastoId(expandedGastoId === id ? null : id);
+    };
+
+    const handleFilter = (value) => {
+        // Actualizar el filtro de texto
+        if (value !== undefined) {
+            setFilterText(value);
+        }
+    };
+
+    const items_filterPeriod = [
+        {
+            slug: () => setPeriod('all'),
+            label: "Todos los gastos",
+            icon: ICONS.all.border("#1C1C1E")
+        },
+        {
+            slug: () => setPeriod('current'),
+            label: "Periodo actual",
+            icon: ICONS.today.border("#1C1C1E"),
+        },
+        {
+            slug: () => setPeriod('previous'),
+            label: "Periodo anterior",
+            icon: ICONS.previous.border("#1C1C1E")
+        },
+        {
+            slug: () => setPeriod('year'),
+            label: "Año actual",
+            icon: ICONS.calendar.border("#1C1C1E")
+        }
+    ];
+
+    const items_filterCategory = [
+        {
+            slug: () => handleFilter(""),
+            label: "Todas las categorías",
+            anchor: "",
+            icon: ICONS.all.border("#1C1C1E"),
+        },
+        {
+            slug: () => handleFilter("feeding"),
+            label: "Alimentación y bebidas",
+            anchor: "feeding",
+            icon: ICONS.restaurant.fill("#1C1C1E"),
+        },
+        {
+            slug: () => handleFilter("transportation"),
+            label: "Transporte",
+            anchor: "transportation",
+            icon: ICONS.transportation.border("#1C1C1E"),
+        },
+        {
+            slug: () => handleFilter("health"),
+            label: "Salud y bienestar",
+            anchor: "health",
+            icon: ICONS.care.border("#1C1C1E"),
+        },
+        {
+            slug: () => handleFilter("educationJob"),
+            label: "Educación o trabajo",
+            anchor: "educationJob",
+            icon: ICONS.ruler.border("#1C1C1E"),
+        },
+        {
+            slug: () => handleFilter("housing"),
+            label: "Vivienda",
+            anchor: "housing",
+            icon: ICONS.house.border("#1C1C1E"),
+        },
+        {
+            slug: () => handleFilter("entertainment"),
+            label: "Entretenimiento y ocio",
+            anchor: "entertainment",
+            icon: ICONS.theater_masks.border("#1C1C1E"),
+        },
+        {
+            slug: () => handleFilter("personalCare"),
+            label: "Ropa y cuidado personal",
+            anchor: "personalCare",
+            icon: ICONS.beauty.border("#1C1C1E"),
+        },
+    ];
 
     const closeModal = () => setState(prev => ({ ...prev, isModalOpen: false }));
 
@@ -366,24 +550,9 @@ export default function TransactionsPage() {
         }
     };
 
-    if (isLoading) {
-        return <Spinner bgTheme={true} />;
-    }
-
-    if (!isAuthenticated) {
-        return null;
-    }
-
     return (
-        <div>
-            {/* Sección de Gastos Totales */}
-            <section className="w-full max-w-screen-sm mt-6 py-3 flex flex-col items-center">
-                <p className="text-main-dark/50">Transacciones</p>
-                {/* <h1 className="text-4xl font-bold text-main-dark my-2">$17,505.00</h1>
-                <p className="text-main-primary">-$7,000.00</p> */}
-            </section>
-
-            <section className="relative py-2 mb-2 flex items-center">
+        <section className="mx-auto p-4 mb-20">
+            <aside className="py-2 mb-2 flex justify-center flex-col gap-2">
                 <div className="w-full flex-center pl-4 rounded-3xl bg-main-dark/5">
                     <i className="flex-center w-6 h-6 opacity-40">
                         {
@@ -401,49 +570,170 @@ export default function TransactionsPage() {
                     <FilterButton
                         label={
                             <i className="flex-center w-6 h-6">
-                                {ICONS.filter.fill("#C2185B")}
+                                {ICONS.filter.fill("#00A86B")}
                             </i>}
-                        items={items_filter}
+                        titleSectionOne='Filtrar por periodo'
+                        itemsSectionOne={items_filterPeriod}
+                        titleSectionTwo='Filtrar por categoría'
+                        itemsSectionTwo={items_filterCategory}
                     />
                 </div>
-            </section>
 
-            {/* Sección de Últimos Gastos */}
-            <section className="w-full max-w-screen-sm mb-20">
-                <hgroup className="mb-2">
-                    <h2 className="text-main-dark py-2 text-lg font-semibold border-b border-main-dark/20">Gastos</h2>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setCharts((prev) => !prev)}
+                        className={`flex-center w-10 h-10 p-2 rounded-full bg-main-highlight/70 text-main-light`}
+                    >
+                        {charts ? ICONS.chart.border('#F5F6FA') : ICONS.chart_line.border('#F5F6FA')}
+                    </button>
+                    <button
+                        onClick={() => setChartCategory((prev) => !prev)}
+                        className={`w-fit flex-center gap-1 h-10 px-4 rounded-3xl ${(chartCategory ? 'bg-main-highlight/70 text-main-light' : 'bg-main-dark/5 text-main-dark/50')}`}>
+                        Categoría
+                    </button>
+                    <button
+                        onClick={() => setChartPaymentType((prev) => !prev)}
+                        className={`w-fit flex-center gap-1 h-10 px-4 rounded-3xl ${(chartPaymentType ? 'bg-main-highlight/70 text-main-light' : 'bg-main-dark/5 text-main-dark/50')}`}>
+                        Método de pago
+                    </button>
+                </div>
+            </aside>
+
+            <hgroup className="mb-2">
+                <h1 className="text-main-dark py-2 text-lg font-semibold border-b border-main-dark/20">Detalles de Gastos</h1>
+                <div className="flex items-center justify-between">
                     <p className="py-2 text-sm font-light text-main-dark/50">{filteredGastos.length} Resultados</p>
-                </hgroup>
+                    <p className="py-2 text-sm font-light text-main-dark/50">${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })} Gastados</p>
+                </div>
+            </hgroup>
 
-                <ul className="space-y-3">
-                    {state.loading ? (
-                        <Spinner bgTheme={true} />
-                    ) : filteredGastos.length > 0 ? (
-                        filteredGastos
+            {/* Gráficos */}
+            <div className="flex gap-4 mb-3">
+                {chartData ? (
+                    <div className="w-full flex-center flex-col space-y-3">
+                        {chartCategory &&
+                            <div className="w-full p-4 flex justify-center flex-col rounded-3xl bg-main-dark/5">
+                                <h2 className="font-semibold mb-2">Gastos por categoría</h2>
+                                {charts ? <Bar
+                                    data={chartData}
+                                    options={{
+                                        indexAxis: 'y',
+                                        plugins: {
+                                            legend: {
+                                                display: false,
+                                                //position: 'bottom',
+                                            },
+                                        },
+                                    }}
+                                /> : <Line
+                                    data={chartData}
+                                    options={{
+                                        indexAxis: 'y',
+                                        plugins: {
+                                            legend: {
+                                                display: false,
+                                                //position: 'bottom',
+                                            },
+                                        },
+                                    }}
+                                />
+                                }
+                            </div>
+                        }
+                        {chartPaymentType &&
+                            <div className="w-full p-4 flex justify-center flex-col rounded-3xl bg-main-dark/5">
+                                <h2 className="font-semibold mb-2">Gastos por tipo de pago</h2>
+                                {charts ? <Bar
+                                    data={paymentChartData}
+                                    options={{
+                                        //indexAxis: 'y',
+                                        plugins: {
+                                            legend: {
+                                                display: false,
+                                                //position: 'bottom',
+                                            },
+                                        },
+                                    }}
+                                /> :
+                                    <Line
+                                        data={paymentChartData}
+                                        options={{
+                                            //indexAxis: 'y',
+                                            plugins: {
+                                                legend: {
+                                                    display: false,
+                                                    //position: 'bottom',
+                                                },
+                                            },
+                                        }}
+                                    />
+                                }
+                            </div>
+                        }
+                    </div>
+                ) : chartData == null ? (
+                    <p className="text-center text-gray-500">Sin resultados</p>
+                ) : (
+                    <p className="text-center text-gray-500">Cargando gráficos...</p>
+                )}
+            </div>
+
+            {/* <h2 className="text-lg font-bold mb-2">Listado de Gastos</h2>*/}
+            {/* Detalle de Gastos */}
+            <ul className="space-y-3">
+                {filteredGastos
+                    .sort((a, b) => {
+                        const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+                        const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+                        return dateB - dateA; // De mayor a menor, para mostrar los más recientes primero
+                    })
+                    .map((gasto) => (
+                        <SwipeableCard
+                            key={gasto.id}
+                            context={userData}
+                            data={gasto}
+                            onEdit={() => handleEdit(gasto.id)}
+                            onDelete={() => handleDelete(gasto.id, gasto, gasto.image &&
+                                gasto.image.name)}
+                            expandedGastoId={expandedGastoId}
+                            onCardClick={handleCardClick}
+                        />
+                    ))}
+            </ul>
+
+            {/* <div className="overflow-x-auto">
+                <h2 className="text-lg font-bold mb-2">Listado de Gastos</h2>
+                <table className="w-full table-auto border-collapse ">
+                    <thead>
+                        <tr className="text-sm bg-gray-200">
+                            <th className="border px-4 py-2">Categoría</th>
+                            <th className="border px-4 py-2">Monto</th>
+                            <th className="border px-4 py-2">Fecha</th>
+                            <th className="border px-4 py-2">Concepto</th>
+                            <th className="border px-4 py-2">Observaciones</th>
+                            <th className="border px-4 py-2">Tipo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredGastos
                             .sort((a, b) => {
-                                const dateA = a.createdAt instanceof Date ? a.createdAt : a.createdAt.toDate();
-                                const dateB = b.createdAt instanceof Date ? b.createdAt : b.createdAt.toDate();
-                                return dateB.getTime() - dateA.getTime(); // Ordenar por fecha descendente
+                                const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+                                const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+                                return dateB - dateA; // De mayor a menor, para mostrar los más recientes primero
                             })
                             .map((gasto) => (
-                                <SwipeableCard
-                                    key={gasto.id}
-                                    context={userData}
-                                    data={gasto}
-                                    onEdit={() => handleEdit(gasto.id)}
-                                    onDelete={() => handleDelete(gasto.id, gasto, gasto.image &&
-                                        gasto.image.name)}
-                                    expandedGastoId={expandedGastoId}
-                                    onCardClick={handleCardClick}
-                                />
-                            ))
-                    ) : (
-                        <li className="flex justify-between items-center bg-main-dark/5 rounded-3xl p-4">
-                            <span className="text-main-dark font-medium">No hay gastos registrados</span>
-                        </li>
-                    )}
-                </ul>
-            </section>
+                                <tr key={gasto.id} className="border-t text-xs">
+                                    <td className="border px-4 py-2">{gasto.category}</td>
+                                    <td className="border px-4 py-2">${gasto.gasto.toFixed(2)}</td>
+                                    <td className="border px-4 py-2">{new Date(gasto.createdAt).toLocaleDateString()}</td>
+                                    <td className="border px-4 py-2">{gasto.title}</td>
+                                    <td className="border px-4 py-2">{gasto.remarks}</td>
+                                    <td className="border px-4 py-2">{paymentTypeMapping[gasto.type] || gasto.type}</td>
+                                </tr>
+                            ))}
+                    </tbody>
+                </table>
+            </div> */}
 
             {
                 state.isModalOpen && (
@@ -519,7 +809,7 @@ export default function TransactionsPage() {
                                             <option value={"feeding"}>Alimentación y Bebidas</option>
                                             <option value={"transportation"}>Transporte</option>
                                             <option value={"health"}>Salud y Bienestar</option>
-                                            <option value={"educationJob"}>Gastos de Educación o Trabajo</option>
+                                            <option value={"educationJob"}>Educación o Trabajo</option>
                                             <option value={"housing"}>Vivienda</option>
                                             <option value={"entertainment"}>Entretenimiento y Ocio</option>
                                             <option value={"personalCare"}>Ropa y Cuidado Personal</option>
@@ -563,6 +853,6 @@ export default function TransactionsPage() {
                     </div>
                 )
             }
-        </div>
-    )
+        </section >
+    );
 }

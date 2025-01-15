@@ -165,18 +165,23 @@ function FilterButton({ label, titleSectionOne, itemsSectionOne = [], titleSecti
 		document.addEventListener("mousedown", handleClickOutside);
 		document.addEventListener("keydown", handleEscape);
 
-		if (isOpen) {
-			document.body.classList.add("no-scroll");
-		} else {
-			document.body.classList.remove("no-scroll");
-		}
-
 		return () => {
-			document.body.classList.remove("no-scroll");
 			document.removeEventListener("mousedown", handleClickOutside);
 			document.removeEventListener("keydown", handleEscape);
 		};
 	});
+
+	useEffect(() => {
+		if (isOpen) {
+			document.body.style.overflow = "hidden";
+		} else {
+			document.body.style.overflow = "";
+		}
+
+		return () => {
+			document.body.style.overflow = "";
+		};
+	}, [isOpen]);
 
 	const handleSelectPeriod = (period) => {
 		setSelectedPeriod(period);
@@ -206,27 +211,6 @@ function FilterButton({ label, titleSectionOne, itemsSectionOne = [], titleSecti
 				<div className="flex flex-col mt-24 p-4 rounded-md bg-[#eaebee] shadow-sm shadow-main-dark/30">
 					<ul className="pb-2">
 						<li className="py-2 font-semibold text-main-dark">{titleSectionOne}</li>
-
-						{/* {itemsSectionOne.map((item, index) => {
-							return (
-								<li
-									className={"text-sm"}
-									key={index}
-									onClick={() => setIsOpen(!isOpen)}
-								>
-									<button
-										className="flex items-center gap-2 text-left w-full py-1 rounded-3xl text-main-dark hover:font-semibold"
-										value={item.anchor}
-										onClick={item.slug}
-									>
-										<i className="flex-center w-4 h-4">
-											{item.icon}
-										</i>
-										{item.label}
-									</button>
-								</li>
-							);
-						})} */}
 						{itemsSectionOne.map((item, index) => (
 							<li className={"text-sm"} key={index}>
 								<button

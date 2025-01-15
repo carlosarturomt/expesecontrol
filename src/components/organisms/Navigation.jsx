@@ -17,23 +17,25 @@ const NavigationFooter = () => {
                     </span>
                 </NavLink>
                 {/* Transacciones */}
-                <NavLink to={!location.includes('transactions') && 'transactions'}
-                    className={`flex-center gap-2 rounded-full transition-all duration-500 ease-in-out text-main-dark
-                    ${location.includes('transactions') && 'bg-main-light py-1 px-4'}
+                <NavLink
+                    //to={!location.includes('transactions') && 'transactions'}
+                    to="/expenses/gastos"
+                    className={`flex-center gap-1 rounded-full transition-all duration-500 ease-in-out text-main-dark
+                    ${location.includes('gastos') && 'bg-main-light py-1 px-4'}
                     `}>
-                    <i className={`flex-center rounded-full transition-all duration-300 ease-in-out ${location.includes('transactions') ? 'w-9 h-9 px-1' : 'w-11 h-11 p-3 bg-main-light/40'}`}>{ICONS.wallet.fill(location.includes('transactions') ? "#1C1C1E" : "#F5F6FA")}</i>
-                    <span className={`${location.includes('transactions') ? 'block pr-1' : 'hidden'}`}>
+                    <i className={`flex-center rounded-full transition-all duration-300 ease-in-out ${location.includes('gastos') ? 'w-9 h-9 px-1' : 'w-11 h-11 p-3 bg-main-light/40'}`}>{ICONS.wallet.fill(location.includes('gastos') ? "#1C1C1E" : "#F5F6FA")}</i>
+                    <span className={`${location.includes('gastos') ? 'block pr-1' : 'hidden'}`}>
                         Transacciones
                     </span>
                 </NavLink>
-                {/* Análisis */}
+                {/* Galería */}
                 <NavLink to={!location.includes('gallery') && 'gallery'}
-                    className={`flex-center gap-2 rounded-full transition-all duration-500 ease-in-out text-main-dark
+                    className={`flex-center gap-1 rounded-full transition-all duration-500 ease-in-out text-main-dark
                     ${location.includes('gallery') && 'bg-main-light py-1 px-4'}
                     `}>
-                    <i className={`flex-center rounded-full transition-all duration-300 ease-in-out ${location.includes('gallery') ? 'w-9 h-9 px-1' : 'w-11 h-11 p-3 bg-main-light/40'}`}>{ICONS.barchart.fill(location.includes('gallery') ? "#1C1C1E" : "#F5F6FA")}</i>
+                    <i className={`flex-center rounded-full transition-all duration-300 ease-in-out ${location.includes('gallery') ? 'w-9 h-9 px-1' : 'w-11 h-11 p-3 bg-main-light/40'}`}>{ICONS.ticket.fill(location.includes('gallery') ? "#1C1C1E" : "#F5F6FA")}</i>
                     <span className={`${location.includes('gallery') ? 'block pr-1' : 'hidden'}`}>
-                        Galería
+                        Tickets
                     </span>
                 </NavLink>
                 {/* Metas */}

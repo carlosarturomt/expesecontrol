@@ -1,7 +1,7 @@
 export const ICONS = {
 	logo: {
 		exco: () => (
-			<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 310.79 483.08">
+			<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 310.79 483.08">
 				<g id="Layer_1-2" data-name="Layer 1">
 					<path d="M111.31,172.95v-39.97L31.38,8.22l44.08,130.37.37,55.28,35.49-20.92Z" fill="#212121" />
 					<polygon points="68.36 199.1 64.25 203.21 22.41 169.96 19.05 99.36 68.36 199.1" fill="#212121" />
@@ -222,6 +222,9 @@ export const ICONS = {
 		border: (color) => (
 			<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24"><g fill="none" stroke={color}><path d="M17.5 19.005V4.995a.8.8 0 0 0-1.244-.666l-1.27.847a.8.8 0 0 1-.943-.041L12.5 3.9a.8.8 0 0 0-1 0L9.957 5.135a.8.8 0 0 1-.944.04l-1.27-.846a.8.8 0 0 0-1.243.666v14.01a.8.8 0 0 0 1.244.666l1.27-.846a.8.8 0 0 1 .943.04L11.5 20.1a.8.8 0 0 0 1 0l1.543-1.235a.8.8 0 0 1 .944-.04l1.27.846a.8.8 0 0 0 1.243-.666Z" /><path strokeLinecap="round" d="M9.5 9.5h5m-5 2.5h5m-5 2.5h5" /></g></svg>
 		),
+		fill: (color) => (
+			<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24"><path fill={color} fillRule="evenodd" d="M18.252 3.427a.5.5 0 0 1 .748.435v16.276a.5.5 0 0 1-.748.434l-2.256-1.288a1 1 0 0 0-.992 0l-2.21 1.262a1.6 1.6 0 0 1-1.588 0l-2.21-1.262a1 1 0 0 0-.992 0l-2.256 1.289A.5.5 0 0 1 5 20.138V3.862a.5.5 0 0 1 .748-.435l2.256 1.29a1 1 0 0 0 .992 0l2.21-1.263a1.6 1.6 0 0 1 1.588 0l2.21 1.262a1 1 0 0 0 .992 0zM9.5 9a.5.5 0 1 0 0 1h5a.5.5 0 0 0 0-1zm0 2.5a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1zm0 2.5a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1z" clipRule="evenodd" /></svg>
+		),
 	},
 	transportation: {
 		border: (color) => (
@@ -239,6 +242,14 @@ export const ICONS = {
 		),
 		fill: (color) => (
 			<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 48 48"><defs><mask id="IconifyId193033fb458c913071"><g fill="none" strokeLinejoin="round" strokeWidth="4"><path fill="#fff" stroke="#fff" d="M21 38c9.389 0 17-7.611 17-17S30.389 4 21 4S4 11.611 4 21s7.611 17 17 17Z" /><path stroke="#000" strokeLinecap="round" d="M26.657 14.343A7.98 7.98 0 0 0 21 12a7.98 7.98 0 0 0-5.657 2.343" /><path stroke="#fff" strokeLinecap="round" d="m33.222 33.222l8.485 8.485" /></g></mask></defs><path fill={color} d="M0 0h48v48H0z" mask="url(#IconifyId193033fb458c913071)" /></svg>
+		),
+	},
+	user: {
+		border: (color) => (
+			<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24"><path fill={color} d="M15.71 12.71a6 6 0 1 0-7.42 0a10 10 0 0 0-6.22 8.18a1 1 0 0 0 2 .22a8 8 0 0 1 15.9 0a1 1 0 0 0 1 .89h.11a1 1 0 0 0 .88-1.1a10 10 0 0 0-6.25-8.19M12 12a4 4 0 1 1 4-4a4 4 0 0 1-4 4" /></svg>
+		),
+		fill: (color, className) => (
+			<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24" className={className}><path fill={color} d="M7.5 6.5C7.5 8.981 9.519 11 12 11s4.5-2.019 4.5-4.5S14.481 2 12 2S7.5 4.019 7.5 6.5M20 21h1v-1c0-3.859-3.141-7-7-7h-4c-3.86 0-7 3.141-7 7v1z" /></svg>
 		),
 	},
 };

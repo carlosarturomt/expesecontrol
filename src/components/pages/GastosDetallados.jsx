@@ -73,6 +73,15 @@ export default function GastosDetallados() {
         }
     }, [anchor]);
 
+    // Cálculo de totalGastos basado en filteredGastos
+    useEffect(() => {
+        const total = filteredGastos.reduce(
+            (acc, gasto) => acc + (parseFloat(gasto.gasto) || 0),
+            0
+        );
+        setTotalGastos(total);
+    }, [filteredGastos]);
+
     useEffect(() => {
         if (!userData || !state.gastos || loading) return;
 
@@ -224,78 +233,6 @@ export default function GastosDetallados() {
         setChartData(newChartData);
     }, [filteredGastos, filterText]);
 
-    const handleEdit = async (id) => {
-        try {
-            const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
-            const gastoSnap = await getDoc(gastoRef);
-
-            if (gastoSnap.exists()) {
-                const gastoData = gastoSnap.data();
-
-                setState((prev) => ({
-                    ...prev,
-                    gasto: gastoData?.gasto || '',
-                    title: gastoData?.title || '',
-                    remarks: gastoData?.remarks || '',
-                    category: gastoData?.category || '',
-                    type: gastoData?.type || '',
-                    date: gastoData?.createdAt
-                        ? gastoData.createdAt.toDate().toISOString().substring(0, 10)
-                        : '',
-                    fileURL: gastoData?.fileURL || '',
-                    isModalOpen: true,
-                    currentGastoId: id,
-                }));
-            } else {
-                console.error(`El gasto con ID: ${id} no existe.`);
-            }
-        } catch (error) {
-            console.error("Error al obtener los datos del gasto:", error);
-        }
-    };
-
-    const handleDelete = async (id, gasto, imageName) => {
-        const confirmDelete = window.confirm(
-            `¿Estás seguro de que deseas eliminar el gasto "${gasto.title}" de $${gasto.gasto}?`
-        );
-
-        if (confirmDelete) {
-            try {
-                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
-
-                // Verificar que imageName esté definido y no vacío antes de intentar eliminar la imagen
-                if (imageName && imageName.trim() !== "") {
-                    const storageRef = ref(storage, `userFiles/${userAuth.username}/${imageName}`);
-                    try {
-                        await deleteObject(storageRef);
-                        console.log("Imagen asociada eliminada de Storage.");
-                    } catch (error) {
-                        console.error("Error al eliminar la imagen de Storage: ", error);
-                    }
-                } else {
-                    console.log("No se proporcionó una imagen para eliminar.");
-                }
-
-                // Elimina el documento del gasto en Firestore
-                await deleteDoc(gastoRef);
-                console.log("Gasto eliminado correctamente.");
-
-                // Actualiza el estado local en lugar de recargar la página
-                setState((prev) => ({
-                    ...prev,
-                    gastos: prev.gastos.filter((g) => g.id !== id), // Filtra el gasto eliminado
-                }));
-            } catch (error) {
-                console.error("Error al eliminar el gasto: ", error);
-                alert("No se pudo eliminar el gasto. Intenta nuevamente.");
-            }
-        }
-    };
-
-    const handleCardClick = (id) => {
-        setExpandedGastoId(expandedGastoId === id ? null : id);
-    };
-
     const handleFilter = (value) => {
         // Actualizar el filtro de texto
         if (value !== undefined) {
@@ -428,6 +365,78 @@ export default function GastosDetallados() {
                 maximumFractionDigits: 2,
             }),
         }));
+    };
+
+    const handleEdit = async (id) => {
+        try {
+            const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
+            const gastoSnap = await getDoc(gastoRef);
+
+            if (gastoSnap.exists()) {
+                const gastoData = gastoSnap.data();
+
+                setState((prev) => ({
+                    ...prev,
+                    gasto: gastoData?.gasto || '',
+                    title: gastoData?.title || '',
+                    remarks: gastoData?.remarks || '',
+                    category: gastoData?.category || '',
+                    type: gastoData?.type || '',
+                    date: gastoData?.createdAt
+                        ? gastoData.createdAt.toDate().toISOString().substring(0, 10)
+                        : '',
+                    fileURL: gastoData?.fileURL || '',
+                    isModalOpen: true,
+                    currentGastoId: id,
+                }));
+            } else {
+                console.error(`El gasto con ID: ${id} no existe.`);
+            }
+        } catch (error) {
+            console.error("Error al obtener los datos del gasto:", error);
+        }
+    };
+
+    const handleDelete = async (id, gasto, imageName) => {
+        const confirmDelete = window.confirm(
+            `¿Estás seguro de que deseas eliminar el gasto "${gasto.title}" de $${gasto.gasto}?`
+        );
+
+        if (confirmDelete) {
+            try {
+                const gastoRef = doc(db, "userPosts", userAuth.username, "gastos", id);
+
+                // Verificar que imageName esté definido y no vacío antes de intentar eliminar la imagen
+                if (imageName && imageName.trim() !== "") {
+                    const storageRef = ref(storage, `userFiles/${userAuth.username}/${imageName}`);
+                    try {
+                        await deleteObject(storageRef);
+                        console.log("Imagen asociada eliminada de Storage.");
+                    } catch (error) {
+                        console.error("Error al eliminar la imagen de Storage: ", error);
+                    }
+                } else {
+                    console.log("No se proporcionó una imagen para eliminar.");
+                }
+
+                // Elimina el documento del gasto en Firestore
+                await deleteDoc(gastoRef);
+                console.log("Gasto eliminado correctamente.");
+
+                // Actualiza el estado local en lugar de recargar la página
+                setState((prev) => ({
+                    ...prev,
+                    gastos: prev.gastos.filter((g) => g.id !== id), // Filtra el gasto eliminado
+                }));
+            } catch (error) {
+                console.error("Error al eliminar el gasto: ", error);
+                alert("No se pudo eliminar el gasto. Intenta nuevamente.");
+            }
+        }
+    };
+
+    const handleCardClick = (id) => {
+        setExpandedGastoId(expandedGastoId === id ? null : id);
     };
 
     const handleSubmit = async (e) => {

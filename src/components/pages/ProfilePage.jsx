@@ -6,7 +6,20 @@ import { UserDataContext } from "@context/userDataContext";
 import { Spinner } from "@components/atoms/Spinner";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
+/* assets */
+import { female_hair_green, female_rockstar, female_sunglasses_blondie, male_boy, male_grandpa, male_sunglasses, male_tshirt_red, x_male_female_purple } from "../../assets/imgs/avatars";
 import { ICONS } from "@assets/icons";
+
+const predefinedAvatars = [
+    female_hair_green,
+    female_rockstar,
+    female_sunglasses_blondie,
+    male_boy,
+    male_grandpa,
+    male_sunglasses,
+    male_tshirt_red,
+    x_male_female_purple,
+];
 
 export default function ProfilePage() {
     const { isLoading, isAuthenticated } = useAuthRequired("/register", "/profile");
@@ -18,6 +31,9 @@ export default function ProfilePage() {
     const [cardType, setCardType] = useState('');
     const [incomeType, setIncomeType] = useState('');
     const [incomeCategory, setIncomeCategory] = useState('');
+
+    const [selectedAvatar, setSelectedAvatar] = useState(userData?.profilePhoto || "");
+    const [customAvatar, setCustomAvatar] = useState(null);
 
     const navigate = useNavigate();
 
@@ -33,8 +49,49 @@ export default function ProfilePage() {
             });
     };
 
+    const handleSelectChange = (event) => {
+        const selectedValue = event.target.value;
+        setPaymentType(selectedValue);
+
+        // Si el usuario selecciona cualquier tarjeta, dejamos vacío el input para que puedan escribir
+        if (selectedValue !== 'other') {
+            setCardType('');
+        }
+    };
+
+    const handleInputChange = (event) => {
+        setCardType(event.target.value);
+    };
+
+    const handleUpdateProfilePhoto = async () => {
+        if (userAuth && userData) {
+            const userDocRef = doc(db, "userData", userAuth.username);
+            try {
+                const photoToUpdate = customAvatar || selectedAvatar;
+                await updateDoc(userDocRef, {
+                    profilePhoto: photoToUpdate,
+                });
+                console.log("Profile photo updated successfully");
+                setTimeout(() => location.reload(), 1000);
+            } catch (error) {
+                console.error("Error updating profile photo:", error);
+            }
+        }
+    };
+
+    const handleCustomAvatarChange = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => setCustomAvatar(e.target.result);
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleUpdateBudget = async (e) => {
         e.preventDefault();
+
+        handleUpdateProfilePhoto()
 
         if (userData && userData.expenseControl) {
             const userDocRef = doc(db, "userData", userAuth.username);
@@ -62,20 +119,6 @@ export default function ProfilePage() {
         }
     };
 
-    const handleSelectChange = (event) => {
-        const selectedValue = event.target.value;
-        setPaymentType(selectedValue);
-
-        // Si el usuario selecciona cualquier tarjeta, dejamos vacío el input para que puedan escribir
-        if (selectedValue !== 'other') {
-            setCardType('');
-        }
-    };
-
-    const handleInputChange = (event) => {
-        setCardType(event.target.value);
-    };
-
     const availableCardOptions = ["card1", "card2", "card3", "card4", "card5"].filter(
         card => !(userData?.paymentTypes && userData.paymentTypes[card])
     );
@@ -95,10 +138,62 @@ export default function ProfilePage() {
     return (
         <div>
             <section className="w-full max-w-screen-sm mt-6 py-3 flex flex-col items-center">
-                <p className="text-main-dark/50">Profile</p>
-                <h1 className="text-4xl font-bold text-main-dark my-2">{userData && userData.contactInf.username}</h1>
-                <p className="text-main-primary">{userData && userData.contactInf.email}</p>
+                <div className="w-full flex items-center gap-2">
+                    <img
+                        src={customAvatar || selectedAvatar || x_male_female_purple}
+                        alt="Profile"
+                        className="w-20 h-20 rounded-full object-cover border"
+                    />
+                    <hgroup className="">
+                        <h1 className="text-2xl font-bold leading-5 text-main-dark">{userData?.contactInf?.username}</h1>
+                        <p className="text-sm text-main-primary">{userData?.contactInf?.email}</p>
+                    </hgroup>
+                </div>
+
+                {/* Profile Photo Section */}
+                <div className="mt-4">
+                    <h3 className="text-main-dark font-semibold mt-4">Actualizar foto de perfil</h3>
+
+                    {/* Predefined Avatars */}
+                    <div className="flex gap-4 mt-4 overflow-x-auto">
+                        {predefinedAvatars.map((avatar) => (
+                            <img
+                                key={avatar}
+                                src={avatar}
+                                alt="Predefined Avatar"
+                                className={`w-16 h-16 rounded-full cursor-pointer border ${selectedAvatar === avatar ? "border-main-primary" : "border-gray-300"
+                                    }`}
+                                onClick={() => setSelectedAvatar(avatar)}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Upload Custom Avatar */}
+                    {/* <div className="mt-4">
+                        <label
+                            htmlFor="upload-avatar"
+                            className="block text-main-dark cursor-pointer font-medium"
+                        >
+                            Subir foto personalizada
+                        </label>
+                        <input
+                            type="file"
+                            id="upload-avatar"
+                            accept="image/*"
+                            className="mt-2"
+                            onChange={handleCustomAvatarChange}
+                        />
+                    </div> */}
+
+                    {/* <button
+                        onClick={handleUpdateProfilePhoto}
+                        className="mt-4 bg-main-primary text-white px-4 py-2 rounded-full hover:bg-main-primary/90"
+                    >
+                        Guardar cambios
+                    </button> */}
+                </div>
             </section>
+
 
             <section className="w-full max-w-screen-sm py-6">
                 <form onSubmit={handleUpdateBudget}>

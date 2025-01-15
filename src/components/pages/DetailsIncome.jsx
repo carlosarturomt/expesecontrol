@@ -86,7 +86,7 @@ export default function DetailsIncome() {
 
         setFilteredIncomes(incomesFiltered.filter(income => income.title.toLowerCase().includes(filterText.toLowerCase()) || income.remarks.toLowerCase().includes(filterText.toLowerCase()) || income.category.toLowerCase().includes(filterText.toLowerCase()))
             .sort((a, b) => b.createdAt - a.createdAt));
-    }, [state.ingresos, userData, period, loading, filterText]);
+    }, [state.ingresos, userData, period, loading, filterText]); 
 
     useEffect(() => {
         if (filteredIncomes.length === 0) {
@@ -575,7 +575,7 @@ export default function DetailsIncome() {
                 <h1 className="text-main-dark py-2 text-lg font-semibold border-b border-main-dark/20">Detalles de Ingresos</h1>
                 <div className="flex items-center justify-between">
                     <p className="py-2 text-sm font-light text-main-dark/50">{filteredIncomes.length} Resultados</p>
-                    <p className="py-2 text-sm font-light text-main-dark/50">${totalIncomes.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })} Gastados</p>
+                    <p className="py-2 text-sm font-light text-main-dark/50">${totalIncomes.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })} Ingresos</p>
                 </div>
             </hgroup>
 

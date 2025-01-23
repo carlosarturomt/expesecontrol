@@ -1,0 +1,1 @@
+import{r,U as c,n as f,u as g}from"./index-WWc8y-UN.js";function p(t,a){const{user:e,loading:u}=r.useContext(c),[o,s]=r.useState(!1),i=f(),n=g();return r.useEffect(()=>{e&&n.pathname!==a?(s(!0),i(a)):!e&&n.pathname!==t?(s(!0),i(t)):s(!1)},[e,i,t,a,n.pathname]),{isLoading:u||o,isAuthenticated:!!e}}export{p as u};

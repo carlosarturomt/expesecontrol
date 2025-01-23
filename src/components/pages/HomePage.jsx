@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { addDoc, collection, doc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db, storage } from "@services/firebase/config";
 import { UserDataContext } from "@context/userDataContext";
 import useAuthRequired from "@hooks/useAuthRequired";
@@ -56,7 +56,6 @@ export default function HomePage() {
 
     const selectedAvatar = userData && userData?.profilePhoto || "";
     const location = useLocation().pathname
-
 
     useEffect(() => {
         if (!userData || !state.gastos || !state.ingresos || loading) return;
@@ -183,6 +182,49 @@ export default function HomePage() {
             document.body.style.overflow = "unset"; // Asegurarse de que se reactiva al desmontar
         };
     }, [state.isModalOpen]);
+
+    useEffect(() => {
+        if (userAuth && userAuth.username) {
+            const gastosRef = collection(db, "userPosts", userAuth.username, "gastos");
+            const ingresosRef = collection(db, "userPosts", userAuth.username, "ingresos");
+
+            // Suscripción en tiempo real a los gastos
+            const unsubscribeGastos = onSnapshot(gastosRef, (snapshot) => {
+                const gastosList = snapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    createdAt: doc.data().createdAt.toDate(),
+                }));
+
+                setState((prev) => ({
+                    ...prev,
+                    gastos: gastosList,
+                    loading: false,
+                }));
+            });
+
+            // Suscripción en tiempo real a los ingresos
+            const unsubscribeIngresos = onSnapshot(ingresosRef, (snapshot) => {
+                const ingresosList = snapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    createdAt: doc.data().createdAt.toDate(),
+                }));
+
+                setState((prev) => ({
+                    ...prev,
+                    ingresos: ingresosList,
+                    loading: false,
+                }));
+            });
+
+            // Limpiar las suscripciones cuando el componente se desmonte
+            return () => {
+                unsubscribeGastos();
+                unsubscribeIngresos();
+            };
+        }
+    }, [userAuth]);
 
     const openModal = () => setState(prev => ({ ...prev, isModalOpen: true }));
     const closeModal = () => setState(prev => ({ ...prev, isModalOpen: false }));
@@ -339,8 +381,7 @@ export default function HomePage() {
                 error: "",
                 currentId: null,
             }));
-
-            setTimeout(() => location.reload(), 1000);
+            //setTimeout(() => location.reload(), 1000);
         } catch (error) {
             console.error(`Error al guardar el ${isIncome ? "ingreso" : "gasto"}: `, error);
             setState((prev) => ({ ...prev, error: `Error al guardar los datos: ${error.message}`, isSubmitting: false }));
@@ -365,7 +406,7 @@ export default function HomePage() {
     return (
         <div className="mb-10">
             {/* Header */}
-            <section className="w-full max-w-screen-sm py-3 flex items-center justify-end"
+            <section className="w-full max-w-screen-sm flex items-center justify-end"
             >
                 <NavLink to={!location.includes('profile') && 'profile'}
                 >
@@ -424,8 +465,8 @@ export default function HomePage() {
                                 Gastos
                             </p>
                             <p className={`w-full font-semibold text-2xl mt-7 ${percentFree > 100 && 'text-primary-nightshade'}`}>
-                                {/* {` ${percentFree.toFixed(0)}% `} */}
-                                ${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {` ${percentFree.toFixed(0)}% `}
+                                {/* ${totalGastos.toLocaleString("es-MX", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 })} */}
                                 <span className="text-xs ml-1 text-primary-slate/70">gastado</span>
                             </p>
                         </div>
@@ -520,29 +561,31 @@ export default function HomePage() {
                         </NavLink>
                     </aside>
 
-                    <aside className="w-full flex flex-wrap items-stretch gap-[4%] my-3">
-                        <div className={`${(totalBudgetToSpent) < 0 ? 'bg-primary-platinum' : 'bg-white hidden'} ${percentSpent < 0 ? 'w-[48%] max-w-[300px]' : 'w-full'} rounded-3xl p-4 flex justify-between items-center`}>
-                            <span className="text-main-dark">Saldo</span>
-                            <span className={`${totalBudgetToSpent < 0 ? 'text-main-primary' : 'text-main-highlight'} font-semibold`}>
-                                {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalBudgetToSpent)}
-                            </span>
-                        </div>
-
-                        {percentSpent < 0 &&
-                            <div className="w-[48%] max-w-[300px] bg-primary-platinum rounded-3xl p-4 flex items-center justify-between gap-1 opacity-0 transform scale-95 transition-all duration-500 ease-out motion-safe:animate-fade-in">
-                                <i className="flex-center w-6 h-6">{ICONS.alert.border("#C2185B")}</i>
-                                <span className="text-sm text-main-primary">
-                                    Has gastado
-                                    <span className="text-base font-semibold text-main-primary">
-                                        {` ${percentSpent.toFixed(2)}% `}
-                                    </span>
-                                    más de lo que deberías este mes.
+                    {totalBudgetToSpent < 0 &&
+                        <aside className="w-full flex flex-wrap items-stretch gap-[4%] mt-3">
+                            <div className={`${(totalBudgetToSpent) < 0 ? 'bg-primary-platinum' : 'bg-white hidden'} ${percentSpent < 0 ? 'w-[48%] max-w-[300px]' : 'w-full'} rounded-3xl p-4 flex justify-between items-center`}>
+                                <span className="text-main-dark">Saldo</span>
+                                <span className={`${totalBudgetToSpent < 0 ? 'text-main-primary' : 'text-main-highlight'} font-semibold`}>
+                                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalBudgetToSpent)}
                                 </span>
                             </div>
-                        }
-                    </aside>
 
-                    <aside className="w-full flex flex-wrap items-start gap-[4%] mb-3">
+                            {percentSpent < 0 &&
+                                <div className="w-[48%] max-w-[300px] bg-primary-platinum rounded-3xl p-4 flex items-center justify-between gap-1 opacity-0 transform scale-95 transition-all duration-500 ease-out motion-safe:animate-fade-in">
+                                    <i className="flex-center w-6 h-6">{ICONS.alert.border("#C2185B")}</i>
+                                    <span className="text-sm text-main-primary">
+                                        Has gastado
+                                        <span className="text-base font-semibold text-main-primary">
+                                            {` ${percentSpent.toFixed(2)}% `}
+                                        </span>
+                                        más de lo que deberías este mes.
+                                    </span>
+                                </div>
+                            }
+                        </aside>
+                    }
+
+                    <aside className="w-full flex flex-wrap items-start gap-[4%] my-3">
                         {filteredPaymentLabels.map((paymentType, index) => (
                             <NavLink to="/expenses/payments" key={paymentType} className="w-[48%] max-w-[300px] mb-3">
                                 <div className="bg-white py-3 px-4 rounded-3xl h-full flex flex-col items-start">

@@ -560,7 +560,7 @@ export default function GastosDetallados() {
     };
 
     return (
-        <section className="mx-auto p-4 mb-20">
+        <section className="mx-auto py-4 mb-20">
             <aside className="py-2 mb-2 flex justify-center flex-col gap-2">
                 <div className="w-full flex-center pl-4 rounded-3xl bg-main-dark/5">
                     <i className="flex-center w-6 h-6 opacity-40">

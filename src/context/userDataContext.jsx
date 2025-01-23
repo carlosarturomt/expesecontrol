@@ -9,6 +9,7 @@ export function UserDataProvider({ children }) {
     const [user, setUser] = useState(null);
     const [userAuth, setUserAuth] = useState({});
     const [userData, setUserData] = useState({});
+    const [userPlans, setUserPlans] = useState({});
     const [userFiles, setUserFiles] = useState({});
     const [loading, setLoading] = useState(true);
 
@@ -70,6 +71,19 @@ export function UserDataProvider({ children }) {
         };
 
         loadUserData();
+    }, [userAuth]);
+
+    useEffect(() => {
+        const loadUserPlans = async () => {
+            if (userAuth && userAuth.username) {
+                const docRefPlans = doc(db, `userPlans/${userAuth.uid}`);
+                const planDetail = await getDoc(docRefPlans);
+                const data = planDetail.data() || null;
+                setUserPlans(data);
+            }
+        };
+
+        loadUserPlans();
     }, [userAuth]);
 
     useEffect(() => {
@@ -144,7 +158,7 @@ export function UserDataProvider({ children }) {
     }, [userAuth, state.filterByPeriod, state.period]);
 
     return (
-        <UserDataContext.Provider value={{ user, userAuth, userData, userFiles, state, setState, loading }}>
+        <UserDataContext.Provider value={{ user, userAuth, userData, userPlans, userFiles, state, setState, loading }}>
             {children}
         </UserDataContext.Provider>
     );

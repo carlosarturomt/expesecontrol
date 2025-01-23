@@ -23,7 +23,7 @@ const predefinedAvatars = [
 
 export default function ProfilePage() {
     const { isLoading, isAuthenticated } = useAuthRequired("/register", "/profile");
-    const { loading, userAuth, userData } = useContext(UserDataContext);
+    const { loading, userAuth, userData, userPlans } = useContext(UserDataContext);
     const [newBudget, setNewBudget] = useState(!loading && userData && userData.expenseControl && userData?.expenseControl.budget || '');
     const [newCurrency, setNewCurrency] = useState(!loading && userData && userData.expenseControl && userData?.expenseControl.currency || 'MXN');
     const [newCutoffDay, setNewCutoffDay] = useState(!loading && userData && userData.expenseControl && userData?.expenseControl.cutoffDay || '1');
@@ -169,21 +169,23 @@ export default function ProfilePage() {
                     </div>
 
                     {/* Upload Custom Avatar */}
-                    {/* <div className="mt-4">
-                        <label
-                            htmlFor="upload-avatar"
-                            className="block text-main-dark cursor-pointer font-medium"
-                        >
-                            Subir foto personalizada
-                        </label>
-                        <input
-                            type="file"
-                            id="upload-avatar"
-                            accept="image/*"
-                            className="mt-2"
-                            onChange={handleCustomAvatarChange}
-                        />
-                    </div> */}
+                    {userPlans.plan == 'enterprise' &&
+                        <div className="mt-4">
+                            <label
+                                htmlFor="upload-avatar"
+                                className="block text-main-dark cursor-pointer font-medium"
+                            >
+                                Subir foto personalizada
+                            </label>
+                            <input
+                                type="file"
+                                id="upload-avatar"
+                                accept="image/*"
+                                className="mt-2"
+                                onChange={handleCustomAvatarChange}
+                            />
+                        </div>
+                    }
 
                     {/* <button
                         onClick={handleUpdateProfilePhoto}

@@ -173,12 +173,15 @@ function FilterButton({ label, titleSectionOne, itemsSectionOne = [], titleSecti
 
 	useEffect(() => {
 		if (isOpen) {
+			// Bloqueamos el scroll solo cuando el modal está abierto
 			document.body.style.overflow = "hidden";
 		} else {
+			// Restauramos el comportamiento de scroll normal cuando el modal está cerrado
 			document.body.style.overflow = "";
 		}
 
 		return () => {
+			// Restauramos el comportamiento de scroll al desmontar el componente
 			document.body.style.overflow = "";
 		};
 	}, [isOpen]);
@@ -204,10 +207,9 @@ function FilterButton({ label, titleSectionOne, itemsSectionOne = [], titleSecti
 				{label}
 			</button>
 
-			<div className={`absolute top-0 left-0 w-full h-screen z-[100] bg-main-dark/80 ${isOpen
-				? "block"
-				: "hidden"
-				}`}>
+			<div
+				className={`absolute top-0 left-0 w-full h-screen z-[100] bg-main-dark/80 ${isOpen ? "block" : "hidden"} modal-fullscreen`}
+			>
 				<div className="flex flex-col mt-24 p-4 rounded-md bg-[#eaebee] shadow-sm shadow-main-dark/30">
 					<ul className="pb-2">
 						<li className="py-2 font-semibold text-main-dark">{titleSectionOne}</li>

@@ -169,7 +169,7 @@ export default function ProfilePage() {
                     </div>
 
                     {/* Upload Custom Avatar */}
-                    {userPlans.plan == 'enterprise' &&
+                    {userPlans && userPlans.plan == 'enterprise' &&
                         <div className="mt-4">
                             <label
                                 htmlFor="upload-avatar"

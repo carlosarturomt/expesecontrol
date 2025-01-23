@@ -30,6 +30,12 @@
 	animation-iteration-count: infinite;
 }
 
+.modal-fullscreen {
+	height: 100vh;
+	overflow: hidden;
+	/* Desactiva el scroll dentro del modal */
+}
+
 input::placeholder {
 	color: #00a86a8e;
 	/* Color por defecto del placeholder */

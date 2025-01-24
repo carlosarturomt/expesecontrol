@@ -10,7 +10,7 @@ const BackgroundPage = ({ children }) => {
                     </i>
                     <div className="text-left">
                         <h2 className="leading-5 text-2xl font-bold text-primary-nightshade">Exco</h2>
-                        <p className="text-primary-nightshade">Control de Gastos</p>
+                        <p className="text-primary-nightshade">Control Financiero</p>
                     </div>
                 </header>
 

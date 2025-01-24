@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { addDoc, collection, doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db, storage } from "@services/firebase/config";
@@ -56,6 +56,7 @@ export default function HomePage() {
 
     const selectedAvatar = userData && userData?.profilePhoto || "";
     const location = useLocation().pathname
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (!userData || !state.gastos || !state.ingresos || loading) return;
@@ -443,13 +444,20 @@ export default function HomePage() {
 
                 <button
                     onClick={() => {
-                        setIsIncome(true); // Es un ingreso
-                        openModal();
+                        if (userData.incomeControl == undefined) {
+                            navigate('/profile'); // Redirige al perfil si incomeControl es undefined
+                        } else {
+                            setIsIncome(true); // Es un ingreso
+                            openModal(); // Abre el modal
+                        }
                     }}
-                    className="w-full flex-center gap-1 text-sm font-semibold bg-main-highlight/70 text-white rounded-3xl p-3 transition-colors duration-200 hover:bg-main-highlight"
+                    className={`w-full flex-center gap-1 text-sm font-semibold bg-main-highlight/70 text-white rounded-3xl p-3 transition-colors duration-200 hover:bg-main-highlight ${userData.incomeControl == undefined && 'opacity-50 cursor-not-allowed'}`}
                 >
-                    <i className="flex-center w-6 h-6 rounded-full hover:scale-105">{ICONS.plus.fill("#FFFFFF")}</i>
-                    Agregar Ingreso
+                    {userData.incomeControl == undefined ? 'Actualiza tus datos' : <>
+                        <i className="flex-center w-6 h-6 rounded-full hover:scale-105">{ICONS.plus.fill("#FFFFFF")}</i>
+                        Agregar Ingreso
+                    </>
+                    }
                 </button>
             </section>
 

@@ -16,14 +16,19 @@ const ValidateButton = ({ onClick, disabled, loading, text }) => {
 	);
 };
 
-const SimpleButton = ({ onClick, disabled, text, bgColor, isSubmit }) => {
+const SimpleButton = ({ onClick, disabled, text, bgColor, isSubmit, className, icon }) => {
 	return (
 		<button
 			type={isSubmit ? "submit" : "button"} // Cambia el tipo según sea necesario
-			className={`${bgColor ? bgColor : 'bg-main-blue/80'} ${bgColor && bgColor.includes('bg-main-light') ? 'text-main-prusia' : 'text-white'} w-full flex-center gap-1 text-sm font-semibold bg-main-highlight/70 text-white rounded-3xl p-3 transition-colors duration-200 hover:bg-main-primary-dark`}
+			className={`${className} ${bgColor ? bgColor : ' bg-main-highlight/70 hover:bg-main-highlight text-white border-2 border-main-highlight/70'} ${bgColor && bgColor.includes('bg-main-light') && 'text-main-prusia'} flex-center gap-1 text-sm font-semibold rounded-3xl p-3 transition-colors duration-200 `}
 			onClick={onClick}
 			disabled={disabled}
 		>
+			{icon &&
+				<i className="flex-center w-6 h-1 mr-1">
+					{icon}
+				</i>
+			}
 			{text}
 		</button>
 	);

@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from "@services/firebase/config";
+import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@services/firebase/config";
 import { InputField } from "@components/atoms/Input";
 import { SimpleButton } from "@components/atoms/Button";
+/* assets */
+import { ICONS } from "@assets/icons";
 
 const Login = () => {
 	const [errors, setErrors] = useState({
@@ -60,6 +63,23 @@ const Login = () => {
 		}
 	};
 
+	const handleGoogleSignUp = async () => {
+		const provider = new GoogleAuthProvider();
+		try {
+			const result = await signInWithPopup(auth, provider);
+			const user = result.user;
+			const userEmail = user.email;
+			console.log(userEmail);
+			navigate('/')
+		} catch (err) {
+			console.error("Error autenticando con Google:", err);
+			setErrors((prev) => ({
+				...prev,
+				general: "Hubo un error al registrar con Google.",
+			}));
+		}
+	};
+
 	return (
 		<form className="flex-center flex-col p-6 rounded-xl w-10/12 bg-white">
 			<h1 className="text-xl font-semibold mb-3 text-main-dark">Iniciar Sesión</h1>
@@ -73,14 +93,7 @@ const Login = () => {
 					classIcon="bg-white/50"
 				/>
 				{errors.email && <span className="text-sm text-red-600">{errors.email}</span>}
-				{/* <InputField
-					name="password"
-					value={formValues.password}
-					onChange={handleChange}
-					placeholder="Contraseña"
-					type="password"
-					classIcon="bg-white/50"
-				/> */}
+
 				<div className="relative w-full">
 					<InputField
 						name="password"
@@ -114,15 +127,32 @@ const Login = () => {
 			</div>
 
 			{/* Botones de navegación */}
-			<div className={`w-full my-3 flex-center`}>
+			<div className={`w-full mt-3 flex-center`}>
 				<SimpleButton
 					text={"Iniciar Sesión"}
 					onClick={submitHandler}
+					className={`w-full`}
+					bgColor={`bg-[#212121] hover:bg-[#212121]/70 text-main-light border-2 border-primary-nightshade/70`}
+				/>
+			</div>
+			<p className="w-full flex-center">
+				- o -
+			</p>
+			<div className="w-full flex flex-wrap">
+				{/* Botón de Google */}
+				<SimpleButton
+					text="Iniciar con Google"
+					onClick={handleGoogleSignUp}
+					bgColor={`bg-white/70 hover:bg-white text-primary-nightshade`}
+					className={`w-full border-2 border-primary-nightshade/70`}
+					icon={ICONS.logo.google()}
 				/>
 			</div>
 
-			<NavLink to={"/register"} className={"text-sm text-main-dark hover:underline"}>Quiero registrarme</NavLink>
-
+			<p className={`text-sm mt-6 mb-3 text-main-dark`}>
+				¿No tienes una cuenta?
+				<NavLink to={"/register"} className={`ml-1 font-semibold hover:underline`}>Registrarme</NavLink>
+			</p>
 		</form>
 	);
 };

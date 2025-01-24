@@ -44,7 +44,7 @@ const InputField = ({ value, onChange, placeholder, type, name }) => {
 				name={name}
 				onChange={onChange}
 				placeholder={placeholder}
-				className={`w-full h-10 outline-none text-sm px-2 font-medium border-b-2 text-main-dark border-main-highlight/50 focus:border-main-highlight`}
+				className={`w-full h-10 outline-none text-sm px-2 font-medium border-b-2 text-main-dark border-primary-nightshade/50 focus:border-primary-nightshade`}
 			/>
 		</label>
 	);

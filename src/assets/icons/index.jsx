@@ -57,6 +57,11 @@ export const ICONS = {
 			</svg>
 		),
 	},
+	arrow: {
+		border: (color) => (
+			<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24"><path fill={color} d="m3.55 12l7.35 7.35q.375.375.363.875t-.388.875t-.875.375t-.875-.375l-7.7-7.675q-.3-.3-.45-.675T.825 12t.15-.75t.45-.675l7.7-7.7q.375-.375.888-.363t.887.388t.375.875t-.375.875z" /></svg>
+		),
+	},
 	all: {
 		border: (color) => (
 			<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 2048 2048"><path fill={color} d="M0 1408v-384h384v384zm128-256v128h128v-128zM0 896V512h384v384zm128-256v128h128V640zM0 384V0h384v384zm128-256v128h128V128zm512 640V640h1152v128zm896 384v128H640v-128zM640 128h1408v128H640zM0 1920v-384h384v384zm128-256v128h128v-128zm512 128v-128h1152v128z" /></svg>
@@ -171,6 +176,11 @@ export const ICONS = {
 	barchart: {
 		fill: (color) => (
 			<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 32 32"><path fill={color} d="M21.25 8.375V28h6.5V8.375zM12.25 28h6.5V4.125h-6.5zm-9 0h6.5V12.625h-6.5z" /></svg>
+		),
+	},
+	send: {
+		fill: (color) => (
+			<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24"><path fill={color} d="M3 20v-6l8-2l-8-2V4l19 8z" /></svg>
 		),
 	},
 	star: {

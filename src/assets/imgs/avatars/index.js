@@ -1,4 +1,5 @@
 // Assets to Profile Images
+export { default as exco } from "./exco.webp";
 export { default as female_hair_green } from "./female_hair_green.webp";
 export { default as female_rockstar } from "./female_rockstar.webp";
 export { default as female_sunglasses_blondie } from "./female_sunglasses_blondie.webp";
